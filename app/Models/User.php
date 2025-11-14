@@ -6,43 +6,60 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+//use Filament\Models\Contracts\FilamentUser;
+//use Filament\Panel;
 
-class User extends Authenticatable
+class User extends Authenticatable 
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
-    protected $fillable = [
+     protected $fillable = [
         'name',
         'email',
         'password',
+        'id_empresa',
+        'status',
+        'is_master',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'status' => 'boolean',
+        'is_master' => 'boolean',
+    ];
+
+    public function canAccessPanel(Panel $panel): bool
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->status && ($this->is_master || $this->empresa);
+    }
+
+    public function empresa(): BelongsTo
+    {
+        return $this->belongsTo(Empresa::class, 'id_empresa');
+    }
+
+    public function cotacoes()
+    {
+        return $this->hasMany(Cotacao::class, 'id_usuario');
+    }
+
+    public function ordensPedido()
+    {
+        return $this->hasMany(OrdemPedido::class, 'id_usuario');
+    }
+
+    public function isMaster(): bool
+    {
+        return $this->is_master;
     }
 }
