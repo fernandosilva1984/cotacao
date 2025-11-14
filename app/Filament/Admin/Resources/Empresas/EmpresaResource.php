@@ -91,7 +91,8 @@ class EmpresaResource extends Resource
                             ->email()
                             ->password(),*/
                         Toggle::make('status')
-                            ->required(),
+                            ->required()
+                            ->inline(false),
                     ])
                     ->columns(2),
             ])

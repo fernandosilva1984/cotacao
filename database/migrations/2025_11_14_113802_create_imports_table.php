@@ -24,6 +24,7 @@ return new class extends Migration
             $table->timestamp('completed_at')->nullable();
             $table->timestamp('cancelled_at')->nullable();
             $table->json('errors')->nullable();
+            $table->timestamps();
             $table->softDeletes();
         });
         Schema::create('import_batches', function (Blueprint $table) {
