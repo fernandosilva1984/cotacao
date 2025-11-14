@@ -19,11 +19,9 @@ class ManageUsers extends ManageRecords
                 ->icon('heroicon-o-plus')
                 ->modalHeading('Adicionar Usuário')
                 ->modalSubmitActionLabel('Salvar')
-               ->successNotificationTitle('Usuário cadastrado com sucesso!')
-              //  ->modalCreateAnotherLabel('Salvar e Criar Outro')
-              //  ->modalCreateAnotherButtonLabel('Salvar e Novo')
+                ->successNotificationTitle('Usuário cadastrado com sucesso!')
                 ->modalCancelActionLabel('Cancelar')
-               // ->createAnother(false) // Se quiser desativar o "Criar outro",
+               // ->createAnother(false) // Se quiser desativar o "Salvar e Criar outro",
         ];
     }
     
