@@ -5,7 +5,7 @@ namespace App\Filament\Admin\Resources\Users\Pages;
 use App\Filament\Admin\Resources\Users\UserResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
-use App\Filament\Imports\ProdutoImporter;
+use App\Filament\Imports\UserImporter;
 use Filament\Actions\ImportAction;
 
 class ManageUsers extends ManageRecords
