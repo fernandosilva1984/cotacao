@@ -131,6 +131,9 @@ class ProdutoResource extends Resource
                         ->dateTime(format: 'd/m/Y H:i:s'),
                     IconEntry::make('status')
                         ->boolean(),
+                    TextEntry::make('empresa.nome_fantasia')
+                        ->label('Empresa')
+                        ->visible(fn () => auth()->user()->is_master),
                 ])
                 ->columns(2),
             ])
@@ -165,7 +168,7 @@ class ProdutoResource extends Resource
                     ->label('Empresa')
                     ->visible(fn () => auth()->user()->is_master)
                     ->searchable()
-                    ->alignCenter(true),
+                    ,
                 
             ])
             ->filters([
@@ -209,13 +212,13 @@ class ProdutoResource extends Resource
             ]);
     }
     public static function getEloquentQuery(): Builder
-{
-     $query = parent::getEloquentQuery();
+    {
+        $query = parent::getEloquentQuery();
 
-    if (!auth()->user()->is_master) {
-        return $query->where('id_empresa', auth()->user()->id_empresa);
-    }
+        if (!auth()->user()->is_master) {
+            return $query->where('id_empresa', auth()->user()->id_empresa);
+        }
 
-    return $query;
+        return $query;
 }
 }

@@ -70,7 +70,8 @@ class FornecedorResource extends Resource
                             ->label('Nome Fantasia'),
                         Toggle::make('status')
                             ->inline(false)
-                            ->required(),
+                            ->required()
+                            ->default(true),
                     ])
                     ->columns(2),
             ])
@@ -89,6 +90,7 @@ class FornecedorResource extends Resource
                         TextEntry::make('email')
                             ->label('E-mail'),
                         TextEntry::make('razao_social')
+                            ->label('Razão Social')
                             ,
                         TextEntry::make('nome_fantasia')
                             ->label('Nome Fantasia'),
@@ -97,6 +99,9 @@ class FornecedorResource extends Resource
                         TextEntry::make('created_at')
                             ->label('Criado em')
                             ->dateTime(format: 'd/m/Y H:i:s'),
+                        TextEntry::make('empresa.nome_fantasia')
+                            ->label('Empresa')
+                            ->visible(fn () => auth()->user()->is_master),
                         
                     ])
                     ->columns(2),
@@ -122,6 +127,13 @@ class FornecedorResource extends Resource
                 IconColumn::make('status')
                     ->alignCenter()
                     ->boolean(),
+                TextColumn::make('empresa.nome_fantasia')
+                    //->relationship('empresa', 'nome_fantasia')
+                    ->label('Empresa')
+                    ->visible(fn () => auth()->user()->is_master)
+                    ->searchable()
+                    ,
+                
                 
             ])
             ->filters([
@@ -164,4 +176,14 @@ class FornecedorResource extends Resource
                 SoftDeletingScope::class,
             ]);
     }
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (!auth()->user()->is_master) {
+            return $query->where('id_empresa', auth()->user()->id_empresa);
+        }
+
+        return $query;
+}
 }

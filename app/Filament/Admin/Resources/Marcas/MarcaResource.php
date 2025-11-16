@@ -62,6 +62,7 @@ class MarcaResource extends Resource
                     ->required(),
                 Toggle::make('status')
                     ->inline(false)
+                    ->default(true)
                     ->required(),
                     ])
                     ->columns(2),
@@ -73,15 +74,22 @@ class MarcaResource extends Resource
     {
         return $schema
             ->components([
-               
-                TextEntry::make('nome'),
-                IconEntry::make('status')
-                    ->boolean(),
-                TextEntry::make('created_at')
-                    ->label('Criado em')
-                    ->dateTime(),
+                Section::make('Dados da Marca')
+                    ->schema([
+                        TextEntry::make('nome'),
+                        IconEntry::make('status')
+                            ->boolean(),
+                        TextEntry::make('created_at')
+                            ->label('Criado em')
+                            ->dateTime(format: 'd/m/Y H:i:s'),
+                        TextEntry::make('empresa.nome_fantasia')
+                            ->label('Empresa')
+                            ->visible(fn () => auth()->user()->is_master),
+                    ])
+                    ->columns(2),
                 
-            ]);
+            ])
+            ->columns(1);
     }
 
     public static function table(Table $table): Table
@@ -94,6 +102,13 @@ class MarcaResource extends Resource
                 IconColumn::make('status')
                     ->alignCenter()
                     ->boolean(),
+                TextColumn::make('empresa.nome_fantasia')
+                    //->relationship('empresa', 'nome_fantasia')
+                    ->label('Empresa')
+                    ->visible(fn () => auth()->user()->is_master)
+                    ->searchable()
+                    ,
+                
                
             ])
             ->filters([
@@ -135,5 +150,15 @@ class MarcaResource extends Resource
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+    }
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (!auth()->user()->is_master) {
+            return $query->where('id_empresa', auth()->user()->id_empresa);
+        }
+
+        return $query;
     }
 }
