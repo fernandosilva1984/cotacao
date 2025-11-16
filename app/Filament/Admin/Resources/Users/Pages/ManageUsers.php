@@ -5,6 +5,8 @@ namespace App\Filament\Admin\Resources\Users\Pages;
 use App\Filament\Admin\Resources\Users\UserResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
+use App\Filament\Imports\ProdutoImporter;
+use Filament\Actions\ImportAction;
 
 class ManageUsers extends ManageRecords
 {
@@ -20,8 +22,15 @@ class ManageUsers extends ManageRecords
                 ->modalHeading('Adicionar Usuário')
                 ->modalSubmitActionLabel('Salvar')
                 ->successNotificationTitle('Usuário cadastrado com sucesso!')
-                ->modalCancelActionLabel('Cancelar')
+                ->modalCancelActionLabel('Cancelar'),
                // ->createAnother(false) // Se quiser desativar o "Salvar e Criar outro",
+               ImportAction::make()
+                ->importer(UserImporter::class)
+                ->modalHeading('Importar Usuário(s)')
+                ->tooltip('Importar usuários via CSV')
+                ->icon('heroicon-o-inbox-arrow-down')
+                ->label('Importar Usuário(s)')
+                ->color('success'),
         ];
     }
     
