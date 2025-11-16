@@ -200,4 +200,8 @@ class UserResource extends Resource
                 SoftDeletingScope::class,
             ]);
     }
+     public static function canViewAny(): bool
+    {
+        return auth()->user()->is_master;
+    }
 }
