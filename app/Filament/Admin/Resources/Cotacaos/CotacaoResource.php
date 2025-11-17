@@ -286,22 +286,19 @@ class CotacaoResource extends Resource
     {
         return $schema
             ->components([
-                TextEntry::make('id_empresa')
-                    ->numeric(),
-                TextEntry::make('id_usuario')
-                    ->numeric(),
-                TextEntry::make('data')
-                    ->date(),
-                TextEntry::make('numero'),
-                TextEntry::make('valor_total')
-                    ->numeric(),
-                TextEntry::make('status'),
-                TextEntry::make('created_at')
-                    ->dateTime(),
-                TextEntry::make('updated_at')
-                    ->dateTime(),
-                TextEntry::make('deleted_at')
-                    ->dateTime(),
+                    TextEntry::make('id_empresa')
+                        ->numeric(),
+                    TextEntry::make('id_usuario')
+                        ->numeric(),
+                    TextEntry::make('data')
+                        ->date(),
+                    TextEntry::make('numero'),
+                    TextEntry::make('valor_total')
+                        ->numeric(),
+                    TextEntry::make('status'),
+                    TextEntry::make('created_at')
+                        ->dateTime(format: 'd/m/Y H:i:s'),
+                    TextEntry::make('observacao'),
             ]);
     }
 
@@ -449,16 +446,26 @@ class CotacaoResource extends Resource
                     ->visible(fn (Cotacao $record) => $record->status === 'pendente'),
 
                 
-                EditAction::make()->label('')->tooltip('Editar'),
-                DeleteAction::make()->label('')->tooltip('Excluir'),
+                 ViewAction::make()
+                    ->label('')
+                    ->tooltip('Ver Detalhes')
+                    ->modalHeading('Visualizar Cotação'),
+                EditAction::make()
+                    ->label('')
+                    ->tooltip('Editar Cotação')
+                    ->modalHeading('Editar Cotação'),
+                DeleteAction::make()
+                    ->label('')
+                    ->tooltip('Excluir Cotação')
+                    ->modalHeading('Deseja Excluir essa cotação?')
+                    ->modalDescription('Essa ação não pode ser desfeita.')
+                    ->modalButton('Excluir')
+                    ->modalWidth('md') // ✅ Correção: Usando o enum corretamente
+                    ->requiresConfirmation(),
             
             ])
             ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                    ForceDeleteBulkAction::make(),
-                    RestoreBulkAction::make(),
-                ]),
+               
             ]);
     }
 
