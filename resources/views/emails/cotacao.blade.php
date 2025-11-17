@@ -80,8 +80,8 @@
                     <th>Descrição</th>
                     <th>Marca</th>
                     <th>Quantidade</th>
-                    <th>Valor Unitário</th>
-                    <th>Valor Total</th>
+                    <!-- <th>Valor Unitário</th>
+                    <th>Valor Total</th>-->
                 </tr>
             </thead>
             <tbody>
@@ -89,20 +89,20 @@
                 <tr>
                     <td>{{ $index + 1 }}</td>
                     <td>{{ $item->descricao_produto }}</td>
-                    <td>{{ $item->marca->nome }}</td>
+                    <td>{{ $item->descricao_marca }}</td>
                     <td>{{ number_format($item->quantidade, 2, ',', '.') }} {{ $item->produto->unidade_medida ?? 'UN' }}
                     </td>
-                    <td>R$ {{ number_format($item->valor_unitario, 2, ',', '.') }}</td>
-                    <td>R$ {{ number_format($item->valor_total_prod, 2, ',', '.') }}</td>
+                    <!-- <td>R$ {{ number_format($item->valor_unitario, 2, ',', '.') }}</td>
+                    <td>R$ {{ number_format($item->valor_total_prod, 2, ',', '.') }}</td> -->
                 </tr>
                 @endforeach
             </tbody>
-            <tfoot>
+            <!--  <tfoot>
                 <tr class="total">
                     <td colspan="5" style="text-align: right;">Total:</td>
                     <td>R$ {{ number_format($cotacao->valor_total, 2, ',', '.') }}</td>
                 </tr>
-            </tfoot>
+            </tfoot>-->
         </table>
 
         <div class="instrucoes">

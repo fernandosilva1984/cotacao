@@ -35,16 +35,25 @@
                 <pre class="whitespace-pre-wrap">{{ $fornecedor->pivot->resposta_fornecedor }}</pre>
             </div> -->
             </div>
-
-            <h4 class="font-medium mb-3">Itens com Valores Propostos:</h4>
-            <table class="w-full border-collapse border border-gray-300 mb-4">
+            <br>
+            <h4 class="font-medium mb-3 text-center">Itens com Valores Propostos:</h4>
+            <br>
+            <table class="w-full border-collapse border border-gray-300 mb-4 text-sm">
                 <thead>
                     <tr class="bg-gray-100">
-                        <th class="border border-gray-300 px-4 py-2">Item</th>
-                        <th class="border border-gray-300 px-4 py-2">Descrição</th>
-                        <th class="border border-gray-300 px-4 py-2">Quantidade</th>
-                        <th class="border border-gray-300 px-4 py-2">Valor Proposto</th>
-                        <th class="border border-gray-300 px-4 py-2">Total Proposto</th>
+                        <th class="border border-gray-300 px-3 py-2 w-16 text-center"
+                            style="width: 50px; border: 1px solid #000000;">Item</th>
+                        <th class="border border-gray-300 px-3 py-2 w-2/5"
+                            style="width: 250px; border: 1px solid #000000;">Descrição</th>
+                        <th class="border border-gray-300 px-3 py-2 w-24 text-center"
+                            style="width: 90px; border: 1px solid #000000;">Quantidade
+                        </th>
+                        <th class="border border-gray-300 px-3 py-2 w-32 text-center"
+                            style="width: 110px; border: 1px solid #000000;">Valor
+                            Proposto</th>
+                        <th class="border border-gray-300 px-3 py-2 w-32 text-center"
+                            style="width: 110px; border: 1px solid #000000;">Total
+                            Proposto</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -59,13 +68,18 @@
                     $fornecedoresMenorPreco[$index] == $fornecedor->nome;
                     @endphp
                     <tr>
-                        <td class="border border-gray-300 px-4 py-2 text-center">{{ $index + 1 }}</td>
-                        <td class="border border-gray-300 px-4 py-2">{{ $item->descricao_produto }}</td>
-                        <td class="border border-gray-300 px-4 py-2 text-center">
+                        <td class="border border-gray-300 px-4 py-2 text-center"
+                            style="width: 50px; border: 1px solid #000000; text-align: center;">{{ $index + 1 }}
+                        </td>
+                        <td class="border border-gray-300 px-4 py-2 w-2/5"
+                            style="width: 250px; border: 1px solid #000000;">
+                            {{ $item->descricao_produto }}</td>
+                        <td class="border border-gray-300 px-4 py-2 text-center"
+                            style="width: 90px; border: 1px solid #000000; text-align: center;">
                             {{ number_format($item->quantidade, 2, ',', '.') }}
                         </td>
                         <td class="border border-gray-300 px-4 py-2 text-right" @if($isMenorPreco)
-                            style="background-color: #dcfce7; color: #166534; font-weight: bold; border: 2px solid #22c55e;"
+                            style="background-color: #dcfce7; color: #166534; font-weight: bold; border: 2px solid #22c55e; text-align: end;"
                             @endif>
                             @if(isset($valores[$index]))
                             R$ {{ number_format($valores[$index], 2, ',', '.') }}
@@ -73,11 +87,11 @@
                             <br><span class="text-xs text-green-600">(Melhor preço)</span>
                             @endif
                             @else
-                            <span class="text-gray-400">-</span>
+                            <span class="text-gray-400" style="width: 100px; border: 1px solid #000000;">-</span>
                             @endif
                         </td>
-                        <td
-                            class="border border-gray-300 px-4 py-2 text-right {{ $isMenorPreco ? 'bg-green-100 text-green-800 font-bold' : '' }}">
+                        <td class="border border-gray-300 px-4 py-2 text-right {{ $isMenorPreco ? 'bg-green-100 text-green-800 font-bold' : '' }}"
+                            style="width: 100px; border: 1px solid #000000; text-align: end;">
                             @if(isset($valores[$index]))
                             R$ {{ number_format($item->quantidade * $valores[$index], 2, ',', '.') }}
                             @else
@@ -103,42 +117,56 @@
         @endforeach
 
         {{-- Mapa de Preços - Menores Preços --}}
+        <br>
         <div class="bg-white rounded-lg shadow p-6 mt-8">
             <h3 class="text-xl font-bold mb-4 text-green-700">📊 Mapa de Preços - Menores Valores por Item</h3>
-            <table class="w-full border-collapse border border-gray-300">
+            <br>
+            <table class="w-full border-collapse border border-gray-800">
                 <thead>
                     <tr class="bg-green-50">
-                        <th class="border border-gray-300 px-4 py-2">Item</th>
-                        <th class="border border-gray-300 px-4 py-2">Descrição</th>
-                        <th class="border border-gray-300 px-4 py-2">Fornecedor</th>
-                        <th class="border border-gray-300 px-4 py-2">Quantidade</th>
-                        <th class="border border-gray-300 px-4 py-2">Menor Valor Unitário</th>
-                        <th class="border border-gray-300 px-4 py-2">Total com Menor Valor</th>
+                        <th class="border border-gray-300 px-4 py-2" style="width: 50px; border: 1px solid #000000;">
+                            Item</th>
+                        <th class="border border-gray-300 px-4 py-2" style="width: 250px; border: 1px solid #000000;">
+                            Descrição</th>
+                        <th class="border border-gray-300 px-4 py-2" style="width: 100px; border: 1px solid #000000;">
+                            Fornecedor</th>
+                        <th class="border border-gray-300 px-4 py-2" style="width: 60px; border: 1px solid #000000;">
+                            Quantidade</th>
+                        <th class="border border-gray-300 px-4 py-2" style="width: 130px; border: 1px solid #000000;">
+                            Menor Valor Unitário</th>
+                        <th class="border border-gray-300 px-4 py-2" style="width: 130px; border: 1px solid #000000;">
+                            Total com Menor Valor</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($cotacao->items as $index => $item)
                     <tr>
-                        <td class="border border-gray-300 px-4 py-2 text-center">{{ $index + 1 }}</td>
-                        <td class="border border-gray-300 px-4 py-2">{{ $item->descricao_produto }}</td>
-                        <td class="border border-gray-300 px-4 py-2 font-semibold">
+                        <td class="border border-gray-300 px-4 py-2 text-center"
+                            style="width: 50px; border: 1px solid #000000; text-align: center;">{{ $index + 1 }}</td>
+                        <td class="border border-gray-300 px-4 py-2" style="width: 250px; border: 1px solid #000000;">
+                            {{ $item->descricao_produto }}</td>
+                        <td class="border border-gray-300 px-4 py-2 font-semibold"
+                            style="width: 100px; border: 1px solid #000000;">
                             @if(isset($fornecedoresMenorPreco[$index]))
                             {{ $fornecedoresMenorPreco[$index] }}
                             @else
                             <span class="text-gray-400">-</span>
                             @endif
                         </td>
-                        <td class="border border-gray-300 px-4 py-2 text-center">
+                        <td class="border border-gray-300 px-4 py-2 text-center"
+                            style="width: 50px; border: 1px solid #000000; text-align: center; ">
                             {{ number_format($item->quantidade, 2, ',', '.') }}
                         </td>
-                        <td class="border border-gray-300 px-4 py-2 text-right bg-green-100 font-bold">
+                        <td class="border border-gray-300 px-4 py-2 text-right bg-green-100 font-bold"
+                            style="width: 130px; border: 1px solid #000000; text-align: end;">
                             @if(isset($menoresPrecos[$index]))
                             R$ {{ number_format($menoresPrecos[$index], 2, ',', '.') }}
                             @else
                             <span class="text-gray-400">-</span>
                             @endif
                         </td>
-                        <td class="border border-gray-300 px-4 py-2 text-right bg-green-100 font-bold">
+                        <td class="border border-gray-300 px-4 py-2 text-right bg-green-100 font-bold"
+                            style="width: 130px; border: 1px solid #000000; text-align: end;">
                             @if(isset($menoresPrecos[$index]))
                             R$ {{ number_format($item->quantidade * $menoresPrecos[$index], 2, ',', '.') }}
                             @else
