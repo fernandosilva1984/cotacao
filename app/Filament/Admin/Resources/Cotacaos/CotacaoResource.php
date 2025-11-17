@@ -232,12 +232,16 @@ class CotacaoResource extends Resource
                                     }),
 
                                 TextInput::make('descricao_produto')
-                                    ->label('Descrição')
-                                    ->columnSpan(3)
+                                    ->label('Descrição do Produto')
+                                    ->columnSpan(4)
                                     ->maxLength(255),
+                                TextInput::make('quantidade')
+                                    ->numeric()
+                                    ->default(1)
+                                    ->columnSpan(1),
 
                                 Select::make('id_marca')
-                                    ->label('ID Marca')
+                                    ->label('Marca')
                                     ->relationship(name: 'marca',
                                         titleAttribute: 'nome',
                                         modifyQueryUsing: fn (Builder $query) => $query->where('id_empresa', auth()->user()->id_empresa)
@@ -256,23 +260,19 @@ class CotacaoResource extends Resource
                                         }
                                     }),
                                     TextInput::make('descricao_marca')
-                                    ->label('Marca')
-                                    //->numeric()
-                                   // ->default(1)
-                                    ->columnSpan(1),
+                                    ->label('Descrição da Marca')
+                                    
+                                    ->columnSpan(2),
 
-                                TextInput::make('quantidade')
-                                    ->numeric()
-                                    ->default(1)
-                                    ->columnSpan(1),
+                                
 
                                 Textarea::make('observacao')
                                     ->label('Observação')
-                                    ->columnSpan(2)
+                                    ->columnSpan(3)
                                     ->rows(1)
                                     ->maxLength(200),
                             ])
-                            ->columns(10)
+                            ->columns(7)
                             ->columnSpanFull()
                             ->defaultItems(0)
                             ->addActionLabel('Adicionar Item'),
@@ -482,44 +482,101 @@ class CotacaoResource extends Resource
         return $query;
     }
 
- private static function getFilePathFromUpload($uploadData): ?string
+private static function getFilePathFromUpload($uploadData): ?string
 {
     \Log::info('getFilePathFromUpload - Input:', ['uploadData' => $uploadData, 'type' => gettype($uploadData)]);
     
-    try {
-        // Se é um array com TemporaryUploadedFile, salva o arquivo e retorna o caminho
-        if (is_array($uploadData) && !empty($uploadData)) {
-            foreach ($uploadData as $uuid => $fileData) {
-                if (is_array($fileData)) {
-                    foreach ($fileData as $key => $value) {
-                        if (is_object($value) && method_exists($value, 'getRealPath')) {
-                            // Salva o arquivo temporário em um local conhecido
-                            $tempPath = storage_path('app/temp-csv-imports/' . $uuid . '.csv');
-                            
-                            // Garante que o diretório existe
-                            if (!is_dir(dirname($tempPath))) {
-                                mkdir(dirname($tempPath), 0755, true);
-                            }
-                            
-                            // Move o arquivo temporário
-                            if ($value->move(dirname($tempPath), basename($tempPath))) {
-                                \Log::info('getFilePathFromUpload - Arquivo salvo em:', ['path' => $tempPath]);
-                                return $tempPath;
-                            }
-                        }
+    // Se já é uma string (caminho direto)
+    if (is_string($uploadData)) {
+        \Log::info('getFilePathFromUpload - Retornando string:', ['path' => $uploadData]);
+        return $uploadData;
+    }
+
+    // Se é um array, procura pelo caminho do arquivo
+    if (is_array($uploadData)) {
+        \Log::info('getFilePathFromUpload - Processando array:', ['count' => count($uploadData), 'keys' => array_keys($uploadData)]);
+        
+        // Nova estrutura: [uuid => [TemporaryUploadedFile => path]]
+        foreach ($uploadData as $uuid => $fileData) {
+            \Log::info('getFilePathFromUpload - Analisando UUID:', ['uuid' => $uuid, 'fileData' => $fileData]);
+            
+            // Se fileData é um array que contém o caminho
+            if (is_array($fileData)) {
+                \Log::info('getFilePathFromUpload - Analisando array interno:', ['keys' => array_keys($fileData)]);
+                
+                foreach ($fileData as $key => $value) {
+                    \Log::info('getFilePathFromUpload - Analisando item:', ['key' => $key, 'value' => $value, 'type' => gettype($value)]);
+                    
+                    // Se o valor é diretamente o caminho (caso atual)
+                    if (is_string($value) && file_exists($value)) {
+                        \Log::info('getFilePathFromUpload - Caminho encontrado no array:', ['path' => $value]);
+                        return $value;
+                    }
+                    
+                    // Se é um TemporaryUploadedFile
+                    if ($value instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+                        $path = $value->getRealPath();
+                        \Log::info('getFilePathFromUpload - TemporaryUploadedFile encontrado:', ['path' => $path]);
+                        return $path;
                     }
                 }
             }
+            
+            // Se fileData é diretamente o caminho (fallback)
+            if (is_string($fileData) && file_exists($fileData)) {
+                \Log::info('getFilePathFromUpload - Caminho direto no fileData:', ['path' => $fileData]);
+                return $fileData;
+            }
+            
+            // Se fileData é um TemporaryUploadedFile
+            if ($fileData instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+                $path = $fileData->getRealPath();
+                \Log::info('getFilePathFromUpload - TemporaryUploadedFile encontrado:', ['path' => $path]);
+                return $path;
+            }
         }
-        
-    } catch (\Throwable $e) {
-        \Log::error('getFilePathFromUpload - Erro ao processar upload:', ['error' => $e->getMessage()]);
     }
-    
+
+    // Se chegou até aqui, tenta uma abordagem mais genérica para extrair caminhos
+    if (is_array($uploadData)) {
+        $path = self::extractPathFromArray($uploadData);
+        if ($path) {
+            return $path;
+        }
+    }
+
     \Log::warning('getFilePathFromUpload - Não foi possível extrair caminho do arquivo');
+    \Log::warning('getFilePathFromUpload - Estrutura completa:', ['structure' => $uploadData]);
     return null;
 }
 
+/**
+ * Função auxiliar para extrair caminho de arquivo de array complexo
+ */
+private static function extractPathFromArray(array $data): ?string
+{
+    foreach ($data as $key => $value) {
+        if (is_string($value) && file_exists($value)) {
+            \Log::info('extractPathFromArray - Caminho encontrado:', ['path' => $value]);
+            return $value;
+        }
+        
+        if (is_array($value)) {
+            $path = self::extractPathFromArray($value);
+            if ($path) {
+                return $path;
+            }
+        }
+        
+        if ($value instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+            $path = $value->getRealPath();
+            \Log::info('extractPathFromArray - TemporaryUploadedFile encontrado:', ['path' => $path]);
+            return $path;
+        }
+    }
+    
+    return null;
+}
     // ---------------------- PROCESSAMENTO CSV ----------------------
     private static function processarCSV(string $filePath): array
     {
