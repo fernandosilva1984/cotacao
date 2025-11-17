@@ -18,20 +18,36 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Filament\Navigation\NavigationGroup;
 
 class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
         return $panel
+           /* ->navigationGroups([
+                NavigationGroup::make()
+                    ->label('Operacional')
+                    ->icon('heroicon-o-shopping-cart'),
+                NavigationGroup::make()
+                    ->label('Administração')
+                    ->icon('heroicon-o-pencil'),
+                NavigationGroup::make()
+                    ->label('Cadastros')
+                    //->label(fn (): string => __('navigation.settings'))
+                    ->icon('heroicon-o-cog-6-tooth')
+                    ->collapsed(),
+            ])*/
             ->default()
             ->id('admin')
             ->path('admin')
             ->login()
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Gray,
+           
             ])
-           // ->topNavigation()
+            ->sidebarCollapsibleOnDesktop()
+            //->topNavigation()
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\Filament\Admin\Resources')
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\Filament\Admin\Pages')
             ->pages([
