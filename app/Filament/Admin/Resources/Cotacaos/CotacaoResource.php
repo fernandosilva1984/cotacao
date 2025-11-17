@@ -310,13 +310,18 @@ class CotacaoResource extends Resource
         return $table
             ->recordTitleAttribute('Cotações')
             ->columns([
-                TextColumn::make('numero')->sortable()->searchable(),
+                TextColumn::make('numero')
+                    ->sortable()
+                    ->searchable()
+                    ->label('Número'),
                 TextColumn::make('fornecedores.nome')
                     ->label('Fornecedor(es)')
                     ->badge()
                     ->separator(',')
                     ->searchable(),
-                TextColumn::make('data')->date(format: 'd/m/Y')->sortable(),
+                TextColumn::make('data')
+                    ->date(format: 'd/m/Y')
+                    ->sortable(),
                 //TextColumn::make('valor_total')->money('BRL')->sortable(),
                 TextColumn::make('status')
                     ->badge()
@@ -329,10 +334,10 @@ class CotacaoResource extends Resource
                         default => 'gray',
                     }),
                 TextColumn::make('items_count')
-                ->label('Qtd Itens')
-                ->counts('items')
-                ->sortable()
-                ->alignCenter(true),
+                    ->label('Qtd Itens')
+                    ->counts('items')
+                    ->sortable()
+                    ->alignCenter(true),
                 TextColumn::make('empresa.nome_fantasia')
                     ->label('Empresa')
                     ->visible(fn () => auth()->user()->is_master)
