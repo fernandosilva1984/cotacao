@@ -18,6 +18,7 @@ return new class extends Migration
             $table->foreignId('id_marca')->constrained('marcas');
             $table->foreignId('id_cotacao_item')->nullable()->constrained('cotacao_items');
             $table->string('descricao_produto');
+            $table->string('descricao_marca');
             $table->decimal('quantidade', 10, 2);
             $table->decimal('valor_unitario', 15, 2);
             $table->decimal('valor_total_prod', 15, 2);

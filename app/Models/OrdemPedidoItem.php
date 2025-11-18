@@ -22,6 +22,7 @@ class OrdemPedidoItem extends Model
         'id_marca',
         'id_cotacao_item',
         'descricao_produto',
+        'descricao_marca',
         'quantidade',
         'valor_unitario',
         'valor_total_prod',
