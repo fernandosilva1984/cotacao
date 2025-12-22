@@ -32,6 +32,7 @@ use UnitEnum;
 use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Forms\Components\FileUpload;
 //use Filament\Forms\Components\Actions;
 //use Filament\Forms\Components\Actions\Action;
@@ -286,19 +287,69 @@ class CotacaoResource extends Resource
     {
         return $schema
             ->components([
-                    TextEntry::make('id_empresa')
-                        ->numeric(),
-                    TextEntry::make('id_usuario')
-                        ->numeric(),
-                    TextEntry::make('data')
-                        ->date(),
-                    TextEntry::make('numero'),
-                    TextEntry::make('valor_total')
-                        ->numeric(),
-                    TextEntry::make('status'),
-                    TextEntry::make('created_at')
-                        ->dateTime(format: 'd/m/Y H:i:s'),
-                    TextEntry::make('observacao'),
+                Section::make('Dados da Cotação')
+                    ->schema([
+                        TextEntry::make('empresa.nome_fantasia')
+                            ->label('Empresa'),
+                        TextEntry::make('numero')
+                            ->label('Número'),
+                        // 🔹 TODOS OS FORNECEDORES
+                        TextEntry::make('fornecedores')
+                            ->label('Fornecedor(es)')
+                            ->getStateUsing(fn ($record) =>
+                                $record->fornecedores
+                                    ->pluck('nome')
+                                    ->join(', ')
+                            )
+                            ->badge(),
+
+                        TextEntry::make('created_at')
+                            ->label('Criado em')
+                            ->dateTime(format: 'd/m/Y H:i:s'),
+                        TextEntry::make('items_count')
+                            ->label('Qtd Itens')
+                            ->counts('items'),
+                        TextEntry::make('status')
+                            ->color(fn (string $state): string => match ($state) {
+                                'pendente' => 'gray',
+                                'enviada' => 'warning',
+                                'respondida' => 'success',
+                                'finalizada' => 'primary',
+                                'cancelada' => 'danger',
+                                default => 'gray',
+                            }),
+                        TextEntry::make('observacao')
+                            ->label('Observação'),
+                    ])
+                    ->columns(2),
+                     // =======================
+            // 🔁 ITENS DA COTAÇÃO
+            // =======================
+            Section::make('Itens da Cotação')
+                ->schema([
+                    RepeatableEntry::make('items')
+                        ->hiddenLabel()
+                        ->schema([
+                            TextEntry::make('descricao_produto')
+                                ->label('Produto')
+                                ->columnSpan(3),
+
+                            TextEntry::make('descricao_marca')
+                                ->label('Marca')
+                                ->columnSpan(2),
+
+                            TextEntry::make('quantidade')
+                                ->label('Quant.')
+                                ->columnSpan(1),
+
+                            TextEntry::make('observacao')
+                                ->label('Observação')
+                                ->columnSpan(4),
+                        ])
+                        ->columns(10),
+                ])
+                ->columnSpanFull(),
+                    
             ]);
     }
 
