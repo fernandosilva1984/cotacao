@@ -63,7 +63,7 @@ class UserResource extends Resource
                         TextInput::make('email')
                             ->label('E-mail')
                             ->email()
-                            ->required(),
+                            ->required(),   
                         //DateTimePicker::make('email_verified_at'),
                         TextInput::make('password')
                             ->label('Senha')
