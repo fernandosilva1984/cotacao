@@ -40,6 +40,7 @@ use Illuminate\Support\Str;
 use UnitEnum;
 use Filament\Schemas\Components\Grid;
 use App\Models\Cotacao;
+use Filament\Infolists\Components\RepeatableEntry;
 
 class OrdemPedidoResource extends Resource
 {
@@ -270,27 +271,71 @@ class OrdemPedidoResource extends Resource
     {
         return $schema
             ->components([
-                TextEntry::make('id_empresa')
-                    ->numeric(),
-                TextEntry::make('id_usuario')
-                    ->numeric(),
-                TextEntry::make('id_fornecedor')
-                    ->numeric(),
-                TextEntry::make('id_cotacao')
-                    ->numeric(),
-                TextEntry::make('data')
-                    ->date(),
-                TextEntry::make('numero'),
-                TextEntry::make('valor_total')
-                    ->numeric(),
-                TextEntry::make('status'),
-                TextEntry::make('created_at')
-                    ->dateTime(),
-                TextEntry::make('updated_at')
-                    ->dateTime(),
-                TextEntry::make('deleted_at')
-                    ->dateTime(),
+                Section::make('Dados da Ordem de Pedido')
+                    ->schema([
+                        TextEntry::make('empresa.nome_fantasia')
+                            ->label('Empresa'),
+                        TextEntry::make('numero')
+                            ->label('Número'),
+                        // 🔹 TODOS OS FORNECEDORES
+                        TextEntry::make('fornecedor.nome')
+                            ->label('Fornecedor')
+                            ->badge(),
+                        TextEntry::make('created_at')
+                            ->label('Criado em')
+                            ->dateTime(format: 'd/m/Y H:i:s'),
+                        TextEntry::make('items_count')
+                            ->label('Qtd Itens')
+                            ->counts('items'),
+                        TextEntry::make('valor_total')
+                            ->numeric()
+                            ->money('BRL'),
+                        TextEntry::make('status')
+                            ->color(fn (string $state): string => match ($state) {
+                                'pendente' => 'gray',
+                                'aprovada' => 'warning',
+                                'entregue' => 'success',
+                                'cancelada' => 'danger',
+                            }),
+                        TextEntry::make('observacao')
+                            ->label('Observação'),
+                    ])
+                    ->columns(2),
+                     // =======================
+            // 🔁 ITENS DA COTAÇÃO
+            // =======================
+            Section::make('Itens do pedido')
+                ->schema([
+                    RepeatableEntry::make('items')
+                        ->hiddenLabel()
+                        ->schema([
+                            TextEntry::make('descricao_produto')
+                                ->label('Produto')
+                                ->columnSpan(3),
+                            TextEntry::make('descricao_marca')
+                                ->label('Marca')
+                                ->columnSpan(2),
+                            TextEntry::make('quantidade')
+                                ->label('Quant.')
+                                ->columnSpan(1),
+                            TextEntry::make('valor_unitario')
+                                ->label('P. Unitário')
+                                ->columnSpan(2)
+                                ->money('BRL'),
+                            TextEntry::make('valor_total_prod')
+                                ->label('P Total')
+                                ->columnSpan(2)
+                                ->money('BRL'),
+                            TextEntry::make('observacao')
+                                ->label('Observação')
+                                ->columnSpan(4),
+                        ])
+                        ->columns(10),
+                ])
+                ->columnSpanFull(),
+                    
             ]);
+                
     }
     public static function table(Table $table): Table
     {
@@ -395,6 +440,7 @@ class OrdemPedidoResource extends Resource
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
         return parent::getRecordRouteBindingEloquentQuery()
+           
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
