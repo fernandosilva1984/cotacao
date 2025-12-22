@@ -92,7 +92,7 @@ class OrdemPedidoResource extends Resource
                     ])->columns(2),
                 Section::make('Seleção de Itens por Fornecedor')
                     ->schema([
-                        Placeholder::make('info_itens')
+                        RepeatableEntry::make('info_itens')
                             ->label('Dados da Cotação')
                             ->content(function (Get $get) {
                                 $idCotacao = $get('id_cotacao');
