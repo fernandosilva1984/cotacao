@@ -35,7 +35,7 @@ use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Card;
 use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\PlaceHolder;
+use Filament\Forms\Components\Placeholder;
 use Illuminate\Support\Str;
 use UnitEnum;
 use Filament\Schemas\Components\Grid;
@@ -92,7 +92,7 @@ class OrdemPedidoResource extends Resource
                     ])->columns(2),
                 Section::make('Seleção de Itens por Fornecedor')
                     ->schema([
-                        PlaceHolder::make('info_itens')
+                        Placeholder::make('info_itens')
                             ->label('Dados da Cotação')
                             ->content(function (Get $get) {
                                 $idCotacao = $get('id_cotacao');
@@ -102,7 +102,7 @@ class OrdemPedidoResource extends Resource
                                 $cotacao = Cotacao::find($idCotacao);
                                 return $cotacao ? "Cotação {$cotacao->numero} - Selecione os itens para gerar as ordens de pedido" : 'Cotação não encontrada';
                             }),
-                       PlaceHolder::make('info_multiplas_ordens')
+                       Placeholder::make('info_multiplas_ordens')
                             ->label('Observacões Importantes')
                             ->content('💡 **Atenção**: Itens de fornecedores diferentes serão agrupados em ordens de pedido separadas automaticamente.')
                             ->columnSpanFull(),
@@ -111,12 +111,12 @@ class OrdemPedidoResource extends Resource
                             ->schema(function (Get $get) {
                                 $idCotacao = $get('id_cotacao');
                                 if (!$idCotacao) {
-                                    return [PlaceHolder::make('no_cotacao')->content('Nenhuma cotação selecionada')];
+                                    return [Placeholder::make('no_cotacao')->content('Nenhuma cotação selecionada')];
                                 }
                                 try {
                                     $cotacao = Cotacao::with(['fornecedores', 'items.produto', 'items.marca'])->find($idCotacao);
                                     if (!$cotacao) {
-                                        return [PlaceHolder::make('cotacao_nao_encontrada')->content('Cotação não encontrada')];
+                                        return [Placeholder::make('cotacao_nao_encontrada')->content('Cotação não encontrada')];
                                     }
                                     $schemas = [];
                                     foreach ($cotacao->fornecedores as $fornecedor) {
@@ -142,12 +142,12 @@ class OrdemPedidoResource extends Resource
                                                                 ->afterStateUpdated(function ($state, Set $set, Get $get) {
                                                                     self::atualizarOrdensPorFornecedor($set, $get);
                                                                 }),
-                                                            PlaceHolder::make("desc_{$fornecedor->id}_{$cotacaoItem->id}")
+                                                            Placeholder::make("desc_{$fornecedor->id}_{$cotacaoItem->id}")
                                                                 ->hiddenLabel()
                                                                 ->content($cotacaoItem->descricao_produto)
                                                                 ->extraAttributes(['class' => 'font-bold'])
                                                                 ->columnSpan(2),
-                                                            PlaceHolder::make("marca_{$fornecedor->id}_{$cotacaoItem->id}")
+                                                            Placeholder::make("marca_{$fornecedor->id}_{$cotacaoItem->id}")
                                                                 ->hiddenLabel()
                                                                 ->content($cotacaoItem->descricao_marca ?? 'N/A')
                                                                 ->extraAttributes(['class' => 'font-bold']),
@@ -155,11 +155,11 @@ class OrdemPedidoResource extends Resource
                                                                 ->hiddenLabel()
                                                                 ->content(number_format($cotacaoItem->quantidade, 0, ',', '.'))
                                                                 ->extraAttributes(['class' => 'text-center']),
-                                                            PlaceHolder::make("unit_{$fornecedor->id}_{$cotacaoItem->id}")
+                                                            Placeholder::make("unit_{$fornecedor->id}_{$cotacaoItem->id}")
                                                                 ->hiddenLabel()
                                                                 ->content('R$ ' . number_format($valorUnitario, 2, ',', '.'))
                                                                 ->extraAttributes(['class' => 'text-right']),
-                                                            PlaceHolder::make("total_{$fornecedor->id}_{$cotacaoItem->id}")
+                                                            Placeholder::make("total_{$fornecedor->id}_{$cotacaoItem->id}")
                                                                 ->hiddenLabel()
                                                                 ->content('R$ ' . number_format($valorTotal, 2, ',', '.'))
                                                                 ->extraAttributes(['class' => 'text-right font-bold']),
@@ -173,29 +173,29 @@ class OrdemPedidoResource extends Resource
                                                 array_unshift($itemSchemas, 
                                                     Grid::make(7)
                                                         ->schema([
-                                                            PlaceHolder::make('header_sel')
+                                                            Placeholder::make('header_sel')
                                                                 ->content('#')
                                                                 ->hiddenLabel()
                                                                 ->extraAttributes(['class' => 'font-bold uppercase text-sm']),
-                                                            PlaceHolder::make('header_desc')
+                                                            Placeholder::make('header_desc')
                                                                 ->hiddenLabel()
                                                                 ->content('PRODUTO')
                                                                 ->extraAttributes(['class' => 'font-bold uppercase text-sm'])
                                                                 ->columnSpan(2),
-                                                            PlaceHolder::make('header_marca')
+                                                            Placeholder::make('header_marca')
                                                                 ->hiddenLabel()
                                                                 ->content('MARCA')
                                                                 ->extraAttributes(['class' => 'font-bold uppercase text-sm'])
                                                                 ->columnSpan(1),
-                                                            PlaceHolder::make('header_qtd')
+                                                            Placeholder::make('header_qtd')
                                                                 ->hiddenLabel()
                                                                 ->content('QTD')
                                                                 ->extraAttributes(['class' => 'text-center font-bold uppercase text-sm']),
-                                                            PlaceHolder::make('header_unit')
+                                                            Placeholder::make('header_unit')
                                                                 ->hiddenLabel()
                                                                 ->content('UNITÁRIO')
                                                                 ->extraAttributes(['class' => 'text-right font-bold uppercase text-sm']),
-                                                            PlaceHolder::make('header_total')
+                                                            Placeholder::make('header_total')
                                                                 ->hiddenLabel()
                                                                 ->content('TOTAL')
                                                                 ->extraAttributes(['class' => 'text-right font-bold uppercase text-sm']),
@@ -212,11 +212,11 @@ class OrdemPedidoResource extends Resource
                                         }
                                     }
                                     if (empty($schemas)) {
-                                        return [PlaceHolder::make('sem_respostas')->content('Nenhum fornecedor respondeu esta cotação ainda.')];
+                                        return [Placeholder::make('sem_respostas')->content('Nenhum fornecedor respondeu esta cotação ainda.')];
                                     }
                                     return $schemas;
                                 } catch (\Exception $e) {
-                                    return [PlaceHolder::make('erro')->content('Erro ao carregar dados da cotação')];
+                                    return [Placeholder::make('erro')->content('Erro ao carregar dados da cotação')];
                                 }
                             })
                             ->columns(1),
@@ -224,7 +224,7 @@ class OrdemPedidoResource extends Resource
                     ->visible(fn (Get $get): bool => !is_null($get('id_cotacao'))),
                 Section::make('Pré-visualização das Ordens de Pedido')
                     ->schema([
-                        PlaceHolder::make('info_preview')
+                        Placeholder::make('info_preview')
                             ->content(function (Get $get) {
                                 $ordens = $get('ordens_por_fornecedor') ?? [];
                                 $totalOrdens = count($ordens);
@@ -243,7 +243,7 @@ class OrdemPedidoResource extends Resource
                                     $quantidadeItens = count($ordemData['itens']);
                                     $schemas[] = Grid::make()
                                         ->schema([
-                                            PlaceHolder::make("fornecedor_{$fornecedorId}")
+                                            Placeholder::make("fornecedor_{$fornecedorId}")
                                                 ->label("Ordem para: {$fornecedorNome}")
                                                 ->content(
                                                     "{$quantidadeItens} item(s) | " .
