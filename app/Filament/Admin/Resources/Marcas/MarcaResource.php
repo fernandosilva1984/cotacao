@@ -122,6 +122,7 @@ class MarcaResource extends Resource
                 EditAction::make()
                     ->label('')
                     ->tooltip('Editar Marca')
+                    ->color('success')
                     ->modalHeading('Editar Marca'),
                 DeleteAction::make()
                     ->label('')
@@ -155,7 +156,7 @@ class MarcaResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        if (!auth()->user()->is_master) {
+        if (!auth()->user()->hasrole('Administrador')) {
             return $query->where('id_empresa', auth()->user()->id_empresa);
         }
 

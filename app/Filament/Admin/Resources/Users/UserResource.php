@@ -22,6 +22,7 @@ use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Section;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\BadgeEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -92,18 +93,20 @@ class UserResource extends Resource
                             ->relationship('empresa', 'nome_fantasia')
                             ->searchable()
                             ->preload()
-                            ,
+                            ->disabled(fn (): bool => !auth()->user()->hasRole('Administrador')),
                         Toggle::make('status')
                             ->required()
                             ->default(true)
                             ->inline(false)
                             ->onColor('success'),
-                        Toggle::make('is_master')
-                            ->label('Administrador Master')
-                            ->required()
-                            ->default(false)
-                            ->inline(false)
-                            ->onColor('success'),
+                        
+                        Select::make('roles')
+                            ->label('Perfis')
+                            ->relationship('roles', 'name')
+                            ->multiple()
+                            ->preload()
+                            ->searchable()
+                            ->disabled(fn (): bool => !auth()->user()->hasRole('Administrador')),
                     ])
                     ->columns(3),
             ])
@@ -128,10 +131,17 @@ class UserResource extends Resource
                             ->label('Empresa'),
                         IconEntry::make('status')
                             ->boolean(),
-                        IconEntry::make('is_master')
-                            ->label('Administrador Master')
-                            ->boolean()
-                            ->alignCenter(),
+                        TextEntry::make('roles.name')
+                            ->label('Perfil(s)')
+                            ->getStateUsing(function ($record) {
+                                if ($record->roles->isEmpty()) {
+                                    return 'Nenhum perfil atribuído';
+                                }
+                                return $record->roles->pluck('name');
+                            })
+                            ->limitList(10) // Limita a exibição inicial
+                            ->badge() // Opcional: para um visual melhor
+                            ->color('success'),
                     ])
                     ->columns(3),
             ])
@@ -155,10 +165,12 @@ class UserResource extends Resource
                 IconColumn::make('status')
                     ->boolean()
                     ->alignCenter(),
-                IconColumn::make('is_master')
-                ->label('Administrador Master')
-                    ->boolean()
-                    ->alignCenter(),
+                TextColumn::make('roles.name')
+                    ->label('Perfil')
+                    ->badge()
+                    ->searchable()
+                    ->separator(', ')
+                    ->color('success'), 
             ])
             ->filters([
                 TrashedFilter::make(),
@@ -171,6 +183,7 @@ class UserResource extends Resource
                 EditAction::make()
                     ->label('')
                     ->tooltip('Editar Usuário')
+                    ->color('success')
                     ->modalHeading('Editar Usuário'),
                 DeleteAction::make()
                     ->label('')
@@ -200,8 +213,15 @@ class UserResource extends Resource
                 SoftDeletingScope::class,
             ]);
     }
-     public static function canViewAny(): bool
+    public static function getEloquentQuery(): Builder
     {
-        return auth()->user()->is_master;
+        $query = parent::getEloquentQuery();
+
+        if (!auth()->user()->hasrole('Administrador')) {
+            return $query->where('id_empresa', auth()->user()->id_empresa);
+        }
+
+        return $query;
     }
+
 }

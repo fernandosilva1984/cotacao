@@ -34,10 +34,6 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Forms\Components\FileUpload;
-//use Filament\Forms\Components\Actions;
-//use Filament\Forms\Components\Actions\Action;
-//use Filament\Forms\Components\Actions; // ✅ CORRIGIDO: Import correto
-//use Filament\Forms\Components\Actions\Action; // ✅ CORRIGIDO: Import correto
 use Filament\Schemas\Get;
 use Filament\Schemas\Set;
 use Illuminate\Support\Facades\Log;
@@ -497,13 +493,14 @@ class CotacaoResource extends Resource
                     ->visible(fn (Cotacao $record) => $record->status === 'pendente'),
 
                 
-                 ViewAction::make()
+                ViewAction::make()
                     ->label('')
                     ->tooltip('Ver Detalhes')
                     ->modalHeading('Visualizar Cotação'),
                 EditAction::make()
                     ->label('')
                     ->tooltip('Editar Cotação')
+                    ->color('success')
                     ->modalHeading('Editar Cotação'),
                 DeleteAction::make()
                     ->label('')
@@ -538,7 +535,7 @@ class CotacaoResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        if (!auth()->user()->is_master) {
+        if (!auth()->user()->hasrole('Administrador')) {
             return $query->where('id_empresa', auth()->user()->id_empresa);
         }
 

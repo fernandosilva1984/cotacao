@@ -7,6 +7,7 @@ use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
 use App\Filament\Imports\UserImporter;
 use Filament\Actions\ImportAction;
+use Filament\Support\Enums\IconPosition;
 
 class ManageUsers extends ManageRecords
 {
@@ -21,6 +22,7 @@ class ManageUsers extends ManageRecords
                 ->icon('heroicon-o-plus')
                 ->modalHeading('Adicionar Usuário')
                 ->modalSubmitActionLabel('Salvar')
+                //->iconPosition(IconPosition::After)
                 ->successNotificationTitle('Usuário cadastrado com sucesso!')
                 ->modalCancelActionLabel('Cancelar'),
                // ->createAnother(false) // Se quiser desativar o "Salvar e Criar outro",
@@ -29,8 +31,10 @@ class ManageUsers extends ManageRecords
                 ->modalHeading('Importar Usuário(s)')
                 ->tooltip('Importar usuários via CSV')
                 ->icon('heroicon-o-inbox-arrow-down')
+                //->iconPosition(IconPosition::After)
                 ->label('Importar Usuário(s)')
-                ->color('success'),
+                ->color('success')
+                ->visible(fn (): bool => auth()->user()->hasRole('Administrador')),
         ];
     }
     

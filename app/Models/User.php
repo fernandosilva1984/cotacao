@@ -13,11 +13,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 //use Filament\Panel;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use Spatie\Permission\Traits\HasRoles;
+use Filament\Models\Contracts\FilamentUser;
 
 class User extends Authenticatable 
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes, LogsActivity;
+    use HasFactory, Notifiable, SoftDeletes, LogsActivity, HasRoles;
+    protected $guard_name = 'web';
 
      protected $fillable = [
         'name',
@@ -46,10 +49,10 @@ class User extends Authenticatable
             ->logOnly(['*'])
             ->logOnlyDirty();
     }
-    public function canAccessPanel(Panel $panel): bool
+   /* public function canAccessFilament(): bool
     {
-        return $this->status && ($this->is_master || $this->empresa);
-    }
+        return $this->hasRole(['Administrador','Usuário']) || $this->is_master;
+    }*/
 
     public function empresa(): BelongsTo
     {

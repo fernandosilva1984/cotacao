@@ -147,6 +147,7 @@ class FornecedorResource extends Resource
                 EditAction::make()
                     ->label('')
                     ->tooltip('Editar Fornecedor')
+                    ->color('success')
                     ->modalHeading('Editar Fornecedor'),
                 DeleteAction::make()
                     ->label('')
@@ -180,7 +181,7 @@ class FornecedorResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        if (!auth()->user()->is_master) {
+        if (!auth()->user()->hasrole('Administrador')) {
             return $query->where('id_empresa', auth()->user()->id_empresa);
         }
 

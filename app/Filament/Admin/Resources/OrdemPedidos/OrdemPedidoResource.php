@@ -75,7 +75,7 @@ class OrdemPedidoResource extends Resource
                                 titleAttribute: 'numero',
                                 modifyQueryUsing: function (Builder $query) {
                                     $user = Auth::user();
-                                    if (!$user->is_master) {
+                                    if (!$user->hasrole('Administrador')) {
                                         // Filtra apenas cotações da empresa do usuário
                                         $query->where('id_empresa', $user->id_empresa);
                                     }
@@ -118,7 +118,7 @@ class OrdemPedidoResource extends Resource
                                 
                                 // Verifica se o usuário tem acesso à cotação
                                 $user = Auth::user();
-                                if (!$user->is_master && $cotacao && $cotacao->id_empresa != $user->id_empresa) {
+                                if (!$user->hasrole('Administrador') && $cotacao && $cotacao->id_empresa != $user->id_empresa) {
                                     return 'Você não tem permissão para acessar esta cotação.';
                                 }
                                 
@@ -495,7 +495,7 @@ class OrdemPedidoResource extends Resource
                     }),
                 TextColumn::make('empresa.nome_fantasia')
                     ->label('Empresa')
-                    ->visible(fn () => auth()->user()->is_master)
+                    ->visible(fn () => auth()->user()->hasrole('Administrador'))
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('usuario.name')
@@ -538,6 +538,7 @@ class OrdemPedidoResource extends Resource
                 EditAction::make()
                     ->label('')
                     ->tooltip('Editar Ordem de Pedido')
+                    ->color('success')
                     ->modalHeading('Editar Ordem de Pedido'),
                 DeleteAction::make()
                     ->label('')
@@ -566,7 +567,7 @@ class OrdemPedidoResource extends Resource
             ]);
         
         $user = Auth::user();
-        if (!$user->is_master) {
+        if (!$user->hasrole('Administrador')) {
             $query->where('id_empresa', $user->id_empresa);
         }
         
@@ -577,7 +578,7 @@ class OrdemPedidoResource extends Resource
     {
         $user = auth()->user();
         
-        if ($user->is_master) {
+        if ($user->hasrole('Administrador')) {
             return parent::getEloquentQuery();
         }
         

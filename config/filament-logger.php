@@ -6,7 +6,7 @@ return [
 
     'activity_resource' => \Jacobtims\FilamentLogger\Resources\ActivityResource::class,
     'scoped_to_tenant' => true,
-    'navigation_sort' => 3,
+    'navigation_sort' => 5,
 
     'resources' => [
         'enabled' => true,

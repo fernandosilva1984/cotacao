@@ -133,7 +133,7 @@ class ProdutoResource extends Resource
                         ->boolean(),
                     TextEntry::make('empresa.nome_fantasia')
                         ->label('Empresa')
-                        ->visible(fn () => auth()->user()->is_master),
+                        ->visible(fn () => auth()->user()->hasrole('Administrador')),
                 ])
                 ->columns(2),
             ])
@@ -145,7 +145,7 @@ class ProdutoResource extends Resource
         return $table
             ->recordTitleAttribute('Produtos')
             ->modifyQueryUsing(fn (Builder $query) => 
-                auth()->user()->is_master 
+                auth()->user()->hasrole('Administrador') 
                     ? $query->whereIn('id_empresa', auth()->user()->empresa->pluck('id')) // Ajuste conforme sua relação de empresas
                     : $query->where('id_empresa', auth()->user()->id_empresa)
             )
@@ -166,7 +166,7 @@ class ProdutoResource extends Resource
                 TextColumn::make('empresa.nome_fantasia')
                     //->relationship('empresa', 'nome_fantasia')
                     ->label('Empresa')
-                    ->visible(fn () => auth()->user()->is_master)
+                    ->visible(fn () => auth()->user()->hasrole('Administrador'))
                     ->searchable()
                     ,
                 
@@ -182,6 +182,7 @@ class ProdutoResource extends Resource
                 EditAction::make()
                     ->label('')
                     ->tooltip('Editar Produto')
+                    ->color('success')
                     ->modalHeading('Editar Produto'),
                 DeleteAction::make()
                     ->label('')
@@ -215,7 +216,7 @@ class ProdutoResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        if (!auth()->user()->is_master) {
+        if (!auth()->user()->hasrole('Administrador')) {
             return $query->where('id_empresa', auth()->user()->id_empresa);
         }
 
