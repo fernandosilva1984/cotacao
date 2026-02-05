@@ -8,10 +8,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class OrdemPedidoItem extends Model
 {
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasFactory, Notifiable, SoftDeletes, LogsActivity;
      protected $table = 'ordem_pedido_items';
         //protected $table = 'proventos_ativos';
     protected $primaryKey = 'id'; // Defina a chave primária, se necessário
@@ -34,6 +36,12 @@ class OrdemPedidoItem extends Model
         'valor_unitario' => 'decimal:2',
         'valor_total_prod' => 'decimal:2',
     ];
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['*'])
+            ->logOnlyDirty();
+    }
 
     public function ordemPedido(): BelongsTo
     {

@@ -19,25 +19,28 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Filament\Navigation\NavigationGroup;
+use Jacobtims\FilamentLogger\FilamentLoggerPlugin;
+
 
 class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
         return $panel
-           /* ->navigationGroups([
+            ->navigationGroups([
                 NavigationGroup::make()
-                    ->label('Operacional')
-                    ->icon('heroicon-o-shopping-cart'),
-                NavigationGroup::make()
-                    ->label('Administração')
-                    ->icon('heroicon-o-pencil'),
+                    ->label('Operacional'),
+                    //->icon('heroicon-o-shopping-cart'),
                 NavigationGroup::make()
                     ->label('Cadastros')
                     //->label(fn (): string => __('navigation.settings'))
-                    ->icon('heroicon-o-cog-6-tooth')
+                    //->icon('heroicon-o-cog-6-tooth')
                     ->collapsed(),
-            ])*/
+                NavigationGroup::make()
+                    ->label('Administração'),
+                   // ->icon('heroicon-o-pencil'),
+                
+            ])
             ->default()
             ->id('admin')
             ->path('admin')
@@ -68,6 +71,12 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+            ])
+            /*->resources([
+                config('filament-logger.activity_resource')
+            ])*/
+            ->plugins([
+                FilamentLoggerPlugin::make(),
             ])
             ->authMiddleware([
                 Authenticate::class,

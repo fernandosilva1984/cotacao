@@ -102,6 +102,7 @@ class EmailService
 
         return $resultados;
     }
+
     /**
      * Processar emails de resposta automaticamente
      */
@@ -163,24 +164,24 @@ class EmailService
      * Conectar ao mailbox do sistema
      */
     private function conectarMailboxSistema($host, $port, $username, $password): Mailbox
-{
-    // Para Titan Email, usar esta string específica
-    $mailboxString = "{{$host}:{$port}/imap/ssl/novalidate-cert}INBOX";
-    
-    Log::info("Conectando ao Titan Email: {$mailboxString}");
-    
-    // Criar diretório para anexos
-    $attachmentPath = storage_path('app/email_attachments');
-    $this->criarDiretorioAnexos($attachmentPath);
+    {
+        // Para Titan Email, usar esta string específica
+        $mailboxString = "{{$host}:{$port}/imap/ssl/novalidate-cert}INBOX";
+        
+        Log::info("Conectando ao Titan Email: {$mailboxString}");
+        
+        // Criar diretório para anexos
+        $attachmentPath = storage_path('app/email_attachments');
+        $this->criarDiretorioAnexos($attachmentPath);
 
-    return new Mailbox(
-        $mailboxString,
-        $username,
-        $password,
-        $attachmentPath,
-        'UTF-8'
-    );
-}
+        return new Mailbox(
+            $mailboxString,
+            $username,
+            $password,
+            $attachmentPath,
+            'UTF-8'
+        );
+    }
 
     /**
      * Processar um email de resposta individual
@@ -192,7 +193,7 @@ class EmailService
             Log::info("De: {$mail->fromAddress}");
             Log::info("Data: {$mail->date}");
 
-            // Extrair número da cotação do assunto
+            // Extrair número da cotação do assunto (suporta novo e antigo formato)
             $numeroCotacao = $this->extrairNumeroCotacao($mail->subject);
             
             if (!$numeroCotacao) {
@@ -203,7 +204,12 @@ class EmailService
             $cotacao = Cotacao::where('numero', $numeroCotacao)->first();
             
             if (!$cotacao) {
-                return ['success' => false, 'message' => "Cotação {$numeroCotacao} não encontrada"];
+                // Tentar encontrar pelo número antigo ou novo formato
+                $cotacao = $this->buscarCotacaoPorNumero($numeroCotacao);
+                
+                if (!$cotacao) {
+                    return ['success' => false, 'message' => "Cotação {$numeroCotacao} não encontrada"];
+                }
             }
 
             // Identificar fornecedor pelo email
@@ -242,6 +248,155 @@ class EmailService
     }
 
     /**
+     * Extrair número da cotação do assunto - suporta ambos formatos
+     */
+    private function extrairNumeroCotacao(string $assunto): ?string
+    {
+        // Padrões para NOVO formato: COT-ID-ANO-SEQUENCIA
+        $padroesNovo = [
+            '/COT-\d+-\d{4}-\d{6}/',                   // COT-1-2025-000001
+            '/cotação\s*#?\s*(COT-\d+-\d{4}-\d{6})/i', // cotação #COT-1-2025-000001
+            '/resposta\s+.*?(COT-\d+-\d{4}-\d{6})/i',  // resposta cotação COT-1-2025-000001
+        ];
+        
+        // Padrões para formato ANTIGO: COTANOSEQUENCIA
+        $padroesAntigo = [
+            '/COT\d{10}/',                             // COT2025000001
+            '/COT\d+/',                                // COT2025000001 (genérico)
+            '/cotação\s*#?\s*(COT\d+)/i',              // cotação #COT2025000001
+            '/resposta\s+.*?(COT\d+)/i',               // resposta cotação COT2025000001
+        ];
+
+        // Primeiro tenta os padrões do novo formato
+        foreach ($padroesNovo as $padrao) {
+            if (preg_match($padrao, $assunto, $matches)) {
+                return $matches[0];
+            }
+        }
+
+        // Se não encontrar no novo formato, tenta o antigo
+        foreach ($padroesAntigo as $padrao) {
+            if (preg_match($padrao, $assunto, $matches)) {
+                return $matches[0];
+            }
+        }
+
+        // Tentar extrair qualquer coisa que pareça um número de cotação
+        if (preg_match('/(COT[-\d]+)/i', $assunto, $matches)) {
+            return strtoupper(trim($matches[1]));
+        }
+
+        return null;
+    }
+
+    /**
+     * Buscar cotação por número (suporta ambos formatos)
+     */
+    private function buscarCotacaoPorNumero(string $numero): ?Cotacao
+    {
+        // Primeiro tenta buscar exatamente pelo número
+        $cotacao = Cotacao::where('numero', $numero)->first();
+        
+        if ($cotacao) {
+            return $cotacao;
+        }
+
+        // Se não encontrar, verifica se é um número no formato antigo
+        // e tenta convertê-lo para o novo formato
+        $parsedNumero = $this->parsearNumeroCotacao($numero);
+        
+        if ($parsedNumero) {
+            // Se já está no formato novo, não faz nada
+            if ($this->isFormatoNovo($numero)) {
+                return null;
+            }
+            
+            // Se está no formato antigo, tenta encontrar correspondência
+            // No formato antigo não temos ID da empresa, então precisamos
+            // buscar de outras maneiras
+            
+            // Extrair ano e sequência do formato antigo
+            if (preg_match('/COT(\d{4})(\d{6})/', $numero, $matches)) {
+                $ano = $matches[1];
+                $sequencia = (int)$matches[2];
+                
+                // Buscar todas as cotações do ano
+                $cotacoes = Cotacao::whereYear('created_at', $ano)
+                    ->orderBy('created_at')
+                    ->get();
+                
+                // Tentar encontrar pela sequência (posição relativa)
+                if (isset($cotacoes[$sequencia - 1])) {
+                    return $cotacoes[$sequencia - 1];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Verificar se o número está no novo formato
+     */
+    private function isFormatoNovo(string $numero): bool
+    {
+        return preg_match('/^COT-\d+-\d{4}-\d{6}$/', $numero);
+    }
+
+    /**
+     * Verificar se o número está no formato antigo
+     */
+    private function isFormatoAntigo(string $numero): bool
+    {
+        return preg_match('/^COT\d{10}$/', $numero);
+    }
+
+    /**
+     * Parsear número da cotação para extrair componentes
+     */
+    private function parsearNumeroCotacao(string $numero): ?array
+    {
+        // Novo formato: COT-ID-ANO-SEQUENCIA
+        if (preg_match('/^COT-(\d+)-(\d{4})-(\d{6})$/', $numero, $matches)) {
+            return [
+                'formato' => 'novo',
+                'id_empresa' => (int)$matches[1],
+                'ano' => (int)$matches[2],
+                'sequencia' => (int)$matches[3],
+            ];
+        }
+        
+        // Formato antigo: COTANOSEQUENCIA
+        if (preg_match('/^COT(\d{4})(\d{6})$/', $numero, $matches)) {
+            return [
+                'formato' => 'antigo',
+                'ano' => (int)$matches[1],
+                'sequencia' => (int)$matches[2],
+            ];
+        }
+        
+        return null;
+    }
+
+    /**
+     * Converter número do formato antigo para o novo formato
+     */
+    private function converterNumeroFormatoAntigoParaNovo(string $numeroAntigo, int $idEmpresa): string
+    {
+        $parsed = $this->parsearNumeroCotacao($numeroAntigo);
+        
+        if ($parsed && $parsed['formato'] === 'antigo') {
+            return sprintf('COT-%d-%s-%06d', 
+                $idEmpresa, 
+                $parsed['ano'], 
+                $parsed['sequencia']
+            );
+        }
+        
+        return $numeroAntigo;
+    }
+
+    /**
      * Identificar fornecedor pelo email do remetente
      */
     private function identificarFornecedorPorEmail(string $email, Cotacao $cotacao)
@@ -261,26 +416,13 @@ class EmailService
             if ($f->email && strpos($email, $f->email) !== false) {
                 return $f;
             }
-        }
-
-        return null;
-    }
-
-    /**
-     * Extrair número da cotação do assunto
-     */
-    private function extrairNumeroCotacao(string $assunto): ?string
-    {
-        // Padrões comuns
-        $padroes = [
-            '/COT\d+/',                         // COT2024000001
-            '/cotação\s*#?\s*(\w+)/i',         // cotação #COT2024000001
-            '/resposta\s+.*?(\w+)/i',          // resposta cotação COT2024000001
-        ];
-
-        foreach ($padroes as $padrao) {
-            if (preg_match($padrao, $assunto, $matches)) {
-                return $matches[0];
+            
+            // Tentar comparar domínios
+            $dominioEmail = substr(strrchr($email, "@"), 1);
+            $dominioFornecedor = $f->email ? substr(strrchr($f->email, "@"), 1) : '';
+            
+            if ($dominioEmail && $dominioFornecedor && $dominioEmail === $dominioFornecedor) {
+                return $f;
             }
         }
 
@@ -304,6 +446,7 @@ class EmailService
                 '/item\s*(\d+).*?([\d\.,]+)\s*reais/i',
                 '/item\s*(\d+).*?valor.*?([\d\.,]+)/i',
                 '/(\d+).*?R\$\s*([\d\.,]+)/',
+                '/item\s*[#:]?\s*(\d+).*?[\$R\s]+([\d\.,]+)/i',
             ];
 
             foreach ($padroes as $padrao) {
@@ -340,6 +483,7 @@ class EmailService
             }
         }
     }
+
     /**
      * Criar diretório para anexos com verificação
      */

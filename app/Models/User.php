@@ -11,11 +11,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 //use Filament\Models\Contracts\FilamentUser;
 //use Filament\Panel;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class User extends Authenticatable 
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasFactory, Notifiable, SoftDeletes, LogsActivity;
 
      protected $fillable = [
         'name',
@@ -38,6 +40,12 @@ class User extends Authenticatable
         'is_master' => 'boolean',
     ];
 
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['*'])
+            ->logOnlyDirty();
+    }
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->status && ($this->is_master || $this->empresa);

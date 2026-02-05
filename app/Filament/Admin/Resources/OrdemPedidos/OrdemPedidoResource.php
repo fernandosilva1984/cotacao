@@ -18,6 +18,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\MarkdownEditor;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -41,12 +42,13 @@ use UnitEnum;
 use Filament\Schemas\Components\Grid;
 use App\Models\Cotacao;
 use Filament\Infolists\Components\RepeatableEntry;
+use Illuminate\Support\Facades\Auth;
 
 class OrdemPedidoResource extends Resource
 {
     protected static ?string $model = OrdemPedido::class;
 
-    protected static string|BackedEnum|null $navigationIcon ='heroicon-o-shopping-cart';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-shopping-cart';
 
     protected static ?string $recordTitleAttribute = 'Ordens de Pedido';
 
@@ -68,7 +70,20 @@ class OrdemPedidoResource extends Resource
                     ->schema([
                         Select::make('id_cotacao')
                             ->label('Cotação')
-                            ->relationship('cotacao', 'numero')
+                            ->relationship(
+                                name: 'cotacao',
+                                titleAttribute: 'numero',
+                                modifyQueryUsing: function (Builder $query) {
+                                    $user = Auth::user();
+                                    if (!$user->is_master) {
+                                        // Filtra apenas cotações da empresa do usuário
+                                        $query->where('id_empresa', $user->id_empresa);
+                                    }
+                                    // Filtra apenas cotações respondidas (que podem gerar ordens)
+                                    $query->where('status', 'respondida');
+                                    return $query;
+                                }
+                            )
                             ->searchable()
                             ->preload()
                             ->required()
@@ -81,7 +96,7 @@ class OrdemPedidoResource extends Resource
                         DatePicker::make('data')
                             ->required()
                             ->default(now()),
-                        Textarea::make('observacao_geral')
+                        MarkdownEditor::make('observacao_geral')
                             ->label('Observações Gerais (aplicam-se a todas as ordens)')
                             ->maxLength(65535)
                             ->columnSpanFull(),
@@ -100,9 +115,16 @@ class OrdemPedidoResource extends Resource
                                     return 'Selecione uma cotação para visualizar as respostas dos fornecedores.';
                                 }
                                 $cotacao = Cotacao::find($idCotacao);
+                                
+                                // Verifica se o usuário tem acesso à cotação
+                                $user = Auth::user();
+                                if (!$user->is_master && $cotacao && $cotacao->id_empresa != $user->id_empresa) {
+                                    return 'Você não tem permissão para acessar esta cotação.';
+                                }
+                                
                                 return $cotacao ? "Cotação {$cotacao->numero} - Selecione os itens para gerar as ordens de pedido" : 'Cotação não encontrada';
                             }),
-                       Placeholder::make('info_multiplas_ordens')
+                        Placeholder::make('info_multiplas_ordens')
                             ->label('Observacões Importantes')
                             ->content('💡 **Atenção**: Itens de fornecedores diferentes serão agrupados em ordens de pedido separadas automaticamente.')
                             ->columnSpanFull(),
@@ -113,11 +135,20 @@ class OrdemPedidoResource extends Resource
                                 if (!$idCotacao) {
                                     return [Placeholder::make('no_cotacao')->content('Nenhuma cotação selecionada')];
                                 }
+                                
                                 try {
+                                    $user = Auth::user();
                                     $cotacao = Cotacao::with(['fornecedores', 'items.produto', 'items.marca'])->find($idCotacao);
+                                    
+                                    // Verifica acesso à cotação
+                                    if (!$user->is_master && $cotacao && $cotacao->id_empresa != $user->id_empresa) {
+                                        return [Placeholder::make('acesso_negado')->content('Acesso negado a esta cotação')];
+                                    }
+                                    
                                     if (!$cotacao) {
                                         return [Placeholder::make('cotacao_nao_encontrada')->content('Cotação não encontrada')];
                                     }
+                                    
                                     $schemas = [];
                                     foreach ($cotacao->fornecedores as $fornecedor) {
                                         if ($fornecedor->pivot->status === 'respondida') {
@@ -222,147 +253,145 @@ class OrdemPedidoResource extends Resource
                             ->columns(1),
                     ])
                     ->visible(fn (Get $get): bool => !is_null($get('id_cotacao'))),
-  Section::make('Pré-visualização das Ordens de Pedido')
-    ->schema([
-        Placeholder::make('info_preview')
-            ->content(function (Get $get) {
-                $ordens = $get('ordens_por_fornecedor') ?? [];
-                $totalOrdens = count($ordens);
-                if ($totalOrdens === 0) {
-                    return 'Selecione itens acima para visualizar as ordens de pedido que serão criadas.';
-                }
-                return "Serão criadas {$totalOrdens} ordem(ns) de pedido. Você pode ajustar as quantidades abaixo:";
-            }),
-        
-        Grid::make()
-            ->schema(function (Get $get) {
-                $ordens = $get('ordens_por_fornecedor') ?? [];
-                $schemas = [];
-                
-                foreach ($ordens as $fornecedorId => $ordemData) {
-                    $fornecedorNome = $ordemData['fornecedor_nome'];
-                    $itens = $ordemData['itens'] ?? [];
-                    
-                    // Calcular total atualizado
-                    $totalAtualizado = 0;
-                    foreach ($itens as $item) {
-                        $quantidadeKey = "quantidade_{$fornecedorId}_{$item['id_cotacao_item']}";
-                        $quantidade = $get($quantidadeKey) ?? $item['quantidade'];
-                        $valorUnitario = $item['valor_unitario'];
-                        $totalAtualizado += $quantidade * $valorUnitario;
-                    }
-                    
-                    // Cabeçalho da ordem
-                    $schemas[] = Section::make("Ordem para: {$fornecedorNome}")
-                        ->description("Total: R$ " . number_format($totalAtualizado, 2, ',', '.'))
-                        ->schema([
-                            // Cabeçalho da tabela
-                            Grid::make(6)
-                                ->schema([
-                                    Placeholder::make("header_produto_{$fornecedorId}")
-                                        ->hiddenLabel()
-                                        ->content('PRODUTO')
-                                        ->extraAttributes(['class' => 'font-bold uppercase text-sm'])
-                                        ->columnSpan(2),
-                                    Placeholder::make("header_marca_{$fornecedorId}")
-                                        ->hiddenLabel()
-                                        ->content('MARCA')
-                                        ->extraAttributes(['class' => 'font-bold uppercase text-sm']),
-                                    Placeholder::make("header_qtd_{$fornecedorId}")
-                                        ->hiddenLabel()
-                                        ->content('QUANTIDADE')
-                                        ->extraAttributes(['class' => 'text-center font-bold uppercase text-sm']),
-                                    Placeholder::make("header_unit_{$fornecedorId}")
-                                        ->hiddenLabel()
-                                        ->content('UNITÁRIO')
-                                        ->extraAttributes(['class' => 'text-right font-bold uppercase text-sm']),
-                                    Placeholder::make("header_total_{$fornecedorId}")
-                                        ->hiddenLabel()
-                                        ->content('TOTAL')
-                                        ->extraAttributes(['class' => 'text-right font-bold uppercase text-sm']),
-                                ])
-                                ->columns(6),
-                            
-                            // Itens editáveis
-                            ...array_map(function ($item) use ($fornecedorId, $get) {
-                                $itemId = $item['id_cotacao_item'];
-                                $quantidadeKey = "quantidade_{$fornecedorId}_{$itemId}";
-                                $observacaoKey = "observacao_item_{$fornecedorId}_{$itemId}";
+                Section::make('Pré-visualização das Ordens de Pedido')
+                    ->schema([
+                        Placeholder::make('info_preview')
+                            ->hiddenLabel()
+                            ->content(function (Get $get) {
+                                $ordens = $get('ordens_por_fornecedor') ?? [];
+                                $totalOrdens = count($ordens);
+                                if ($totalOrdens === 0) {
+                                    return 'Selecione itens acima para visualizar as ordens de pedido que serão criadas.';
+                                }
+                                return "Serão criadas {$totalOrdens} ordem(ns) de pedido. Você pode ajustar as quantidades abaixo:";
+                            }),
+                        
+                        Grid::make()
+                            ->schema(function (Get $get) {
+                                $ordens = $get('ordens_por_fornecedor') ?? [];
+                                $schemas = [];
                                 
-                                // Calcular valores atuais
-                                $quantidadeAtual = $get($quantidadeKey) ?? $item['quantidade'];
-                                $valorUnitario = $item['valor_unitario'];
-                                $valorTotalItem = $quantidadeAtual * $valorUnitario;
+                                foreach ($ordens as $fornecedorId => $ordemData) {
+                                    $fornecedorNome = $ordemData['fornecedor_nome'];
+                                    $itens = $ordemData['itens'] ?? [];
+                                    
+                                    // Calcular total atualizado
+                                    $totalAtualizado = 0;
+                                    foreach ($itens as $item) {
+                                        $quantidadeKey = "quantidade_{$fornecedorId}_{$item['id_cotacao_item']}";
+                                        $quantidade = $get($quantidadeKey) ?? $item['quantidade'];
+                                        $valorUnitario = $item['valor_unitario'];
+                                        $totalAtualizado += $quantidade * $valorUnitario;
+                                    }
+                                    
+                                    // Cabeçalho da ordem
+                                    $schemas[] = Section::make("Ordem para: {$fornecedorNome}")
+                                        ->description("Total: R$ " . number_format($totalAtualizado, 2, ',', '.'))
+                                        ->schema([
+                                            // Cabeçalho da tabela
+                                            Grid::make(6)
+                                                ->schema([
+                                                    Placeholder::make("header_produto_{$fornecedorId}")
+                                                        ->hiddenLabel()
+                                                        ->content('PRODUTO')
+                                                        ->extraAttributes(['class' => 'font-bold uppercase text-sm'])
+                                                        ->columnSpan(2),
+                                                    Placeholder::make("header_marca_{$fornecedorId}")
+                                                        ->hiddenLabel()
+                                                        ->content('MARCA')
+                                                        ->extraAttributes(['class' => 'font-bold uppercase text-sm']),
+                                                    Placeholder::make("header_qtd_{$fornecedorId}")
+                                                        ->hiddenLabel()
+                                                        ->content('QUANTIDADE')
+                                                        ->extraAttributes(['class' => 'text-center font-bold uppercase text-sm']),
+                                                    Placeholder::make("header_unit_{$fornecedorId}")
+                                                        ->hiddenLabel()
+                                                        ->content('UNITÁRIO')
+                                                        ->extraAttributes(['class' => 'text-right font-bold uppercase text-sm']),
+                                                    Placeholder::make("header_total_{$fornecedorId}")
+                                                        ->hiddenLabel()
+                                                        ->content('TOTAL')
+                                                        ->extraAttributes(['class' => 'text-right font-bold uppercase text-sm']),
+                                                ])
+                                                ->columns(6),
+                                            
+                                            // Itens editáveis
+                                            ...array_map(function ($item) use ($fornecedorId, $get) {
+                                                $itemId = $item['id_cotacao_item'];
+                                                $quantidadeKey = "quantidade_{$fornecedorId}_{$itemId}";
+                                                $observacaoKey = "observacao_item_{$fornecedorId}_{$itemId}";
+                                                
+                                                // Calcular valores atuais
+                                                $quantidadeAtual = $get($quantidadeKey) ?? $item['quantidade'];
+                                                $valorUnitario = $item['valor_unitario'];
+                                                $valorTotalItem = $quantidadeAtual * $valorUnitario;
+                                                
+                                                return Grid::make(6)
+                                                    ->schema([
+                                                        Placeholder::make("produto_{$fornecedorId}_{$itemId}")
+                                                            ->hiddenLabel()
+                                                            ->content($item['descricao_produto'])
+                                                            ->columnSpan(2),
+                                                        
+                                                        Placeholder::make("marca_{$fornecedorId}_{$itemId}")
+                                                            ->hiddenLabel()
+                                                            ->content($item['descricao_marca']),
+                                                        
+                                                        TextInput::make($quantidadeKey)
+                                                            ->hiddenLabel()
+                                                            ->numeric()
+                                                            ->minValue(1)
+                                                            ->default($item['quantidade'])
+                                                            ->dehydrated()
+                                                            ->required()
+                                                            ->reactive()
+                                                            ->afterStateUpdated(function ($state, Set $set, Get $get) use ($fornecedorId) {
+                                                                self::atualizarTotaisOrdem($set, $get, $fornecedorId);
+                                                            })
+                                                            ->extraAttributes(['class' => 'text-center']),
+                                                        
+                                                        Placeholder::make("unit_{$fornecedorId}_{$itemId}")
+                                                            ->hiddenLabel()
+                                                            ->content('R$ ' . number_format($valorUnitario, 2, ',', '.'))
+                                                            ->extraAttributes(['class' => 'text-right']),
+                                                        
+                                                        Placeholder::make("total_item_{$fornecedorId}_{$itemId}")
+                                                            ->hiddenLabel()
+                                                            ->content('R$ ' . number_format($valorTotalItem, 2, ',', '.'))
+                                                            ->extraAttributes(['class' => 'text-right font-bold']),
+                                                        
+                                                        Textarea::make($observacaoKey)
+                                                            ->label('Observação do item')
+                                                            ->placeholder('Observação específica...')
+                                                            ->default($item['observacao'] ?? '')
+                                                            ->maxLength(255)
+                                                            ->columnSpan(6),
+                                                    ])
+                                                    ->columns(6);
+                                            }, $itens),
+                                            
+                                            // Observações gerais para a ordem
+                                            Textarea::make("observacao_fornecedor_{$fornecedorId}")
+                                                ->label("Observações gerais para {$fornecedorNome}")
+                                                ->placeholder("Observações específicas para esta ordem...")
+                                                ->maxLength(65535)
+                                                ->columnSpanFull(),
+                                        ])
+                                        ->collapsible();
+                                }
                                 
-                                return Grid::make(6)
-                                    ->schema([
-                                        Placeholder::make("produto_{$fornecedorId}_{$itemId}")
-                                            ->hiddenLabel()
-                                            ->content($item['descricao_produto'])
-                                            ->columnSpan(2),
-                                        
-                                        Placeholder::make("marca_{$fornecedorId}_{$itemId}")
-                                            ->hiddenLabel()
-                                            ->content($item['descricao_marca']),
-                                        
-                                        textInput::make($quantidadeKey)
-                                            ->hiddenLabel()
-                                          //  ->label('')
-                                           // ->numeric()
-                                           // ->minValue(1)
-                                            //->value(1)
-                                            ->default($item['quantidade'])
-                                            ->dehydrated() // Mantém o valor mesmo após atualizações
-                                            ->required()
-                                            ->reactive()
-                                            ->afterStateUpdated(function ($state, Set $set, Get $get) use ($fornecedorId) {
-                                                self::atualizarTotaisOrdem($set, $get, $fornecedorId);
-                                            })
-                                            ->extraAttributes(['class' => 'text-center']),
-                                        
-                                        Placeholder::make("unit_{$fornecedorId}_{$itemId}")
-                                            ->hiddenLabel()
-                                            ->content('R$ ' . number_format($valorUnitario, 2, ',', '.'))
-                                            ->extraAttributes(['class' => 'text-right']),
-                                        
-                                        Placeholder::make("total_item_{$fornecedorId}_{$itemId}")
-                                            ->hiddenLabel()
-                                            ->content('R$ ' . number_format($valorTotalItem, 2, ',', '.'))
-                                            ->extraAttributes(['class' => 'text-right font-bold']),
-                                        
-                                        Textarea::make($observacaoKey)
-                                            ->label('Observação do item')
-                                            ->placeholder('Observação específica...')
-                                            ->default($item['observacao'] ?? '')
-                                            ->maxLength(255)
-                                            ->columnSpan(6),
-                                    ])
-                                    ->columns(6);
-                            }, $itens),
-                            
-                            // Observações gerais para a ordem
-                            Textarea::make("observacao_fornecedor_{$fornecedorId}")
-                                ->label("Observações gerais para {$fornecedorNome}")
-                                ->placeholder("Observações específicas para esta ordem...")
-                                ->maxLength(65535)
-                                ->columnSpanFull(),
-                        ])
-                        ->collapsible();
-                }
-                
-                
-                return $schemas;
-            })
-            ->columns(1),
-    ])
-    ->visible(fn (Get $get): bool => !empty($get('ordens_por_fornecedor'))),
+                                return $schemas;
+                            })
+                            ->columns(1),
+                    ])
+                    ->visible(fn (Get $get): bool => !empty($get('ordens_por_fornecedor'))),
                 Hidden::make('ordens_por_fornecedor')
                     ->reactive()
                     ->default([]),
             ])
-            
             ->columns(1);
     }
+    
     public static function infolist(Schema $schema): Schema
     {
         return $schema
@@ -373,7 +402,6 @@ class OrdemPedidoResource extends Resource
                             ->label('Empresa'),
                         TextEntry::make('numero')
                             ->label('Número'),
-                        // 🔹 TODOS OS FORNECEDORES
                         TextEntry::make('fornecedor.nome')
                             ->label('Fornecedor')
                             ->badge(),
@@ -397,48 +425,44 @@ class OrdemPedidoResource extends Resource
                             ->label('Observação'),
                     ])
                     ->columns(2),
-                     // =======================
-            // 🔁 ITENS DA COTAÇÃO
-            // =======================
-            Section::make('Itens do pedido')
-                ->schema([
-                    RepeatableEntry::make('items')
-                        ->hiddenLabel()
-                        ->schema([
-                            TextEntry::make('descricao_produto')
-                                ->label('Produto')
-                                ->columnSpan(3),
-                            TextEntry::make('descricao_marca')
-                                ->label('Marca')
-                                ->columnSpan(2),
-                            TextEntry::make('quantidade')
-                                ->label('Quant.')
-                                ->columnSpan(1),
-                            TextEntry::make('valor_unitario')
-                                ->label('P. Unitário')
-                                ->columnSpan(2)
-                                ->money('BRL'),
-                            TextEntry::make('valor_total_prod')
-                                ->label('P Total')
-                                ->columnSpan(2)
-                                ->money('BRL'),
-                            TextEntry::make('observacao')
-                                ->label('Observação')
-                                ->columnSpan(4),
-                        ])
-                        ->columns(10),
-                ])
-                ->columnSpanFull(),
-                    
+                Section::make('Itens do pedido')
+                    ->schema([
+                        RepeatableEntry::make('items')
+                            ->hiddenLabel()
+                            ->schema([
+                                TextEntry::make('descricao_produto')
+                                    ->label('Produto')
+                                    ->columnSpan(3),
+                                TextEntry::make('descricao_marca')
+                                    ->label('Marca')
+                                    ->columnSpan(2),
+                                TextEntry::make('quantidade')
+                                    ->label('Quant.')
+                                    ->columnSpan(1),
+                                TextEntry::make('valor_unitario')
+                                    ->label('P. Unitário')
+                                    ->columnSpan(2)
+                                    ->money('BRL'),
+                                TextEntry::make('valor_total_prod')
+                                    ->label('P Total')
+                                    ->columnSpan(2)
+                                    ->money('BRL'),
+                                TextEntry::make('observacao')
+                                    ->label('Observação')
+                                    ->columnSpan(4),
+                            ])
+                            ->columns(10),
+                    ])
+                    ->columnSpanFull(),
             ]);
-                
     }
+    
     public static function table(Table $table): Table
     {
         return $table
             ->recordTitleAttribute('Ordem de Pedidos')
             ->columns([
-               TextColumn::make('numero')
+                TextColumn::make('numero')
                     ->label('Número')
                     ->searchable()
                     ->sortable(),
@@ -497,7 +521,7 @@ class OrdemPedidoResource extends Resource
                         $record->save();
                     })
                     ->visible(fn (OrdemPedido $record) => $record->status === 'pendente'),
-                 Action::make('entregue')
+                Action::make('entregue')
                     ->label('')
                     ->tooltip('Confirmar Entrega')
                     ->icon('heroicon-o-truck')
@@ -521,26 +545,34 @@ class OrdemPedidoResource extends Resource
                     ->modalHeading('Deseja Excluir essa ordem de pedido?')
                     ->modalDescription('Essa ação não pode ser desfeita.')
                     ->modalButton('Excluir')
-                    ->modalWidth('md') // ✅ Correção: Usando o enum corretamente
+                    ->modalWidth('md')
                     ->requiresConfirmation(),
             ])
-            ->toolbarActions([
-             ]);
+            ->toolbarActions([]);
     }
+    
     public static function getPages(): array
     {
         return [
             'index' => ManageOrdemPedidos::route('/'),
         ];
     }
+    
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
-        return parent::getRecordRouteBindingEloquentQuery()
-           
+        $query = parent::getRecordRouteBindingEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+        
+        $user = Auth::user();
+        if (!$user->is_master) {
+            $query->where('id_empresa', $user->id_empresa);
+        }
+        
+        return $query;
     }
+    
     public static function getEloquentQuery(): Builder
     {
         $user = auth()->user();
@@ -548,102 +580,111 @@ class OrdemPedidoResource extends Resource
         if ($user->is_master) {
             return parent::getEloquentQuery();
         }
+        
         return parent::getEloquentQuery()->where('id_empresa', $user->id_empresa);
     }
-    // Método para agrupar itens por fornecedor (mantido igual)
-   private static function atualizarOrdensPorFornecedor(Set $set, Get $get)
-{
-    $idCotacao = $get('id_cotacao');
-    if (!$idCotacao) {
-        $set('ordens_por_fornecedor', []);
-        return;
-    }
     
-    try {
-        $cotacao = Cotacao::with(['fornecedores', 'items.produto', 'items.marca'])->find($idCotacao);
-        if (!$cotacao) {
+    // Método para agrupar itens por fornecedor
+    private static function atualizarOrdensPorFornecedor(Set $set, Get $get)
+    {
+        $idCotacao = $get('id_cotacao');
+        if (!$idCotacao) {
             $set('ordens_por_fornecedor', []);
             return;
         }
         
-        $ordensPorFornecedor = [];
-        
-        foreach ($cotacao->fornecedores as $fornecedor) {
-            if ($fornecedor->pivot->status === 'respondida') {
-                $valores = $cotacao->parsearRespostaFornecedor($fornecedor->pivot->resposta_fornecedor);
-                if (!is_array($valores)) {
-                    continue;
-                }
-                
-                $itensFornecedor = [];
-                $totalFornecedor = 0;
-                $itemIndex = 0;
-                
-                foreach ($cotacao->items as $cotacaoItem) {
-                    if (isset($valores[$itemIndex])) {
-                        $checkboxName = "item_{$fornecedor->id}_{$cotacaoItem->id}";
-                        $isSelecionado = $get($checkboxName) ?? false;
-                        
-                        if ($isSelecionado) {
-                            $valorUnitario = $valores[$itemIndex];
-                            $valorTotal = $cotacaoItem->quantidade * $valorUnitario;
-                            
-                            $itensFornecedor[] = [
-                                'id_cotacao_item' => $cotacaoItem->id,
-                                'id_produto' => $cotacaoItem->id_produto,
-                                'descricao_produto' => $cotacaoItem->descricao_produto,
-                                'id_marca' => $cotacaoItem->id_marca,
-                                'descricao_marca' => $cotacaoItem->descricao_marca ?? 'N/A',
-                                'quantidade' => $cotacaoItem->quantidade, // Quantidade original
-                                'valor_unitario' => $valorUnitario,
-                                'valor_total_item' => $valorTotal,
-                                'observacao' => $cotacaoItem->observacao ?? '',
-                            ];
-                            $totalFornecedor += $valorTotal;
-                        }
+        try {
+            $user = Auth::user();
+            $cotacao = Cotacao::with(['fornecedores', 'items.produto', 'items.marca'])->find($idCotacao);
+            
+            // Verifica se o usuário tem acesso à cotação
+            if (!$user->is_master && $cotacao && $cotacao->id_empresa != $user->id_empresa) {
+                $set('ordens_por_fornecedor', []);
+                return;
+            }
+            
+            if (!$cotacao) {
+                $set('ordens_por_fornecedor', []);
+                return;
+            }
+            
+            $ordensPorFornecedor = [];
+            
+            foreach ($cotacao->fornecedores as $fornecedor) {
+                if ($fornecedor->pivot->status === 'respondida') {
+                    $valores = $cotacao->parsearRespostaFornecedor($fornecedor->pivot->resposta_fornecedor);
+                    if (!is_array($valores)) {
+                        continue;
                     }
-                    $itemIndex++;
-                }
-                
-                if (!empty($itensFornecedor)) {
-                    $ordensPorFornecedor[$fornecedor->id] = [
-                        'fornecedor_nome' => $fornecedor->nome,
-                        'fornecedor_id' => $fornecedor->id,
-                        'itens' => $itensFornecedor,
-                        'total' => $totalFornecedor,
-                    ];
+                    
+                    $itensFornecedor = [];
+                    $totalFornecedor = 0;
+                    $itemIndex = 0;
+                    
+                    foreach ($cotacao->items as $cotacaoItem) {
+                        if (isset($valores[$itemIndex])) {
+                            $checkboxName = "item_{$fornecedor->id}_{$cotacaoItem->id}";
+                            $isSelecionado = $get($checkboxName) ?? false;
+                            
+                            if ($isSelecionado) {
+                                $valorUnitario = $valores[$itemIndex];
+                                $valorTotal = $cotacaoItem->quantidade * $valorUnitario;
+                                
+                                $itensFornecedor[] = [
+                                    'id_cotacao_item' => $cotacaoItem->id,
+                                    'id_produto' => $cotacaoItem->id_produto,
+                                    'descricao_produto' => $cotacaoItem->descricao_produto,
+                                    'id_marca' => $cotacaoItem->id_marca,
+                                    'descricao_marca' => $cotacaoItem->descricao_marca ?? 'N/A',
+                                    'quantidade' => $cotacaoItem->quantidade,
+                                    'valor_unitario' => $valorUnitario,
+                                    'valor_total_item' => $valorTotal,
+                                    'observacao' => $cotacaoItem->observacao ?? '',
+                                ];
+                                $totalFornecedor += $valorTotal;
+                            }
+                        }
+                        $itemIndex++;
+                    }
+                    
+                    if (!empty($itensFornecedor)) {
+                        $ordensPorFornecedor[$fornecedor->id] = [
+                            'fornecedor_nome' => $fornecedor->nome,
+                            'fornecedor_id' => $fornecedor->id,
+                            'itens' => $itensFornecedor,
+                            'total' => $totalFornecedor,
+                        ];
+                    }
                 }
             }
+            
+            $set('ordens_por_fornecedor', $ordensPorFornecedor);
+        } catch (\Exception $e) {
+            $set('ordens_por_fornecedor', []);
+        }
+    }
+    
+    private static function atualizarTotaisOrdem(Set $set, Get $get, $fornecedorId)
+    {
+        $ordens = $get('ordens_por_fornecedor') ?? [];
+        
+        if (!isset($ordens[$fornecedorId])) {
+            return;
         }
         
-        $set('ordens_por_fornecedor', $ordensPorFornecedor);
-    } catch (\Exception $e) {
-        $set('ordens_por_fornecedor', []);
+        $ordemData = $ordens[$fornecedorId];
+        $itens = $ordemData['itens'] ?? [];
+        $novoTotal = 0;
+        
+        foreach ($itens as $item) {
+            $itemId = $item['id_cotacao_item'];
+            $quantidadeKey = "quantidade_{$fornecedorId}_{$itemId}";
+            $quantidade = $get($quantidadeKey) ?? $item['quantidade'];
+            $valorUnitario = $item['valor_unitario'];
+            $novoTotal += $quantidade * $valorUnitario;
+        }
+        
+        $ordens[$fornecedorId]['total'] = $novoTotal;
+        $set('ordens_por_fornecedor', $ordens);
     }
-}
-private static function atualizarTotaisOrdem(Set $set, Get $get, $fornecedorId)
-{
-    $ordens = $get('ordens_por_fornecedor') ?? [];
-    
-    if (!isset($ordens[$fornecedorId])) {
-        return;
-    }
-    
-    $ordemData = $ordens[$fornecedorId];
-    $itens = $ordemData['itens'] ?? [];
-    $novoTotal = 0;
-    
-    // Recalcular total baseado nas quantidades atuais
-    foreach ($itens as $item) {
-        $itemId = $item['id_cotacao_item'];
-        $quantidadeKey = "quantidade_{$fornecedorId}_{$itemId}";
-        $quantidade = $get($quantidadeKey) ?? $item['quantidade'];
-        $valorUnitario = $item['valor_unitario'];
-        $novoTotal += $quantidade * $valorUnitario;
-    }
-    
-    // Atualizar total na ordem
-    $ordens[$fornecedorId]['total'] = $novoTotal;
-    $set('ordens_por_fornecedor', $ordens);
-}
 }
