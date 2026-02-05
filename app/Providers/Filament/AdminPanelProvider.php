@@ -37,7 +37,8 @@ class AdminPanelProvider extends PanelProvider
                     //->icon('heroicon-o-cog-6-tooth')
                     ->collapsed(),
                 NavigationGroup::make()
-                    ->label('Administração'),
+                    ->label('Administração')
+                    ->collapsed(),
                    // ->icon('heroicon-o-pencil'),
                 
             ])
