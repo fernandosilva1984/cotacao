@@ -16,11 +16,11 @@ class EmpresaSeeder extends Seeder
         Empresa::create([
         'razao_social' => 'Sistema de Cotações LTDA',
         'nome_fantasia' => 'Sistema de Cotações',
-        'endereco' => 'Rua Exemplo, 123',
+        'endereco' => 'Rua Dom Pedro II, 1031',
         'bairro'   => 'Centro',
-        'cidade' => 'São Paulo',
+        'cidade' => 'Lajedo-PE',
         'cnpj' => '12.345.678/0001-90',
-        'contato' => '(11) 98765-4321',
+        'contato' => '(87) 99934-6266',
         'email' => 'contato@meusinvestimentos.online',
         'status' => true,
         ]);
