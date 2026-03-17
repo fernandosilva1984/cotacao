@@ -1,0 +1,7 @@
+usuario: meus8611_cotacao
+senha: ~HRI4~*Bg(jy
+Banco: meus8611_cotacao
+IP: 192.185.131.78
+
+email: cotacao@meusinvestimentos.online
+senha: Ua*CiIb-,jN?Zh[
