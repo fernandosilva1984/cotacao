@@ -2,7 +2,7 @@
 
 namespace App\Policies;
 
-use Jacobtims\FilamentLogger\Models\Activity;
+use App\Models\Activity;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 

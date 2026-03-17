@@ -20,6 +20,7 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Filament\Navigation\NavigationGroup;
 use Jacobtims\FilamentLogger\FilamentLoggerPlugin;
+use App\Http\Middleware\CheckUserAndCompanyStatus;
 
 
 class AdminPanelProvider extends PanelProvider
@@ -60,7 +61,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\Filament\Admin\Widgets')
             ->widgets([
                 AccountWidget::class,
-                FilamentInfoWidget::class,
+               // FilamentInfoWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -72,12 +73,14 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                'web', // Certifique-se de que o middleware 'web' esteja presente para sessões e CSRF
+                CheckUserAndCompanyStatus::class, // Adiciona o middleware personalizado
             ])
-            /*->resources([
-                config('filament-logger.activity_resource')
-            ])*/
+            ->resources([
+               
+            ])
             ->plugins([
-                FilamentLoggerPlugin::make(),
+              
             ])
             ->authMiddleware([
                 Authenticate::class,

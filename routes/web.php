@@ -3,6 +3,6 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect('/admin');})->name('login');
+    return redirect('/admin/login');});
    /* return view('welcome');
 });*/
