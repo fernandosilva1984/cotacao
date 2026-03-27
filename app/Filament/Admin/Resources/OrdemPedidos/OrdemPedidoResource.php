@@ -325,7 +325,8 @@ class OrdemPedidoResource extends Resource
                                                 $quantidadeAtual = $get($quantidadeKey) ?? $item['quantidade'];
                                                 $valorUnitario = $item['valor_unitario'];
                                                 $valorTotalItem = $quantidadeAtual * $valorUnitario;
-                                                
+                                                // Antes de criar o TextInput, verifique se o valor já existe no estado
+                                                $quantidadeAtual = $get($quantidadeKey) ?? $item['quantidade'];
                                                 return Grid::make(6)
                                                     ->schema([
                                                         Placeholder::make("produto_{$fornecedorId}_{$itemId}")
@@ -340,8 +341,9 @@ class OrdemPedidoResource extends Resource
                                                         TextInput::make($quantidadeKey)
                                                             ->hiddenLabel()
                                                             ->numeric()
+                                                            ->step(1)
                                                             ->minValue(1)
-                                                            ->default($item['quantidade'])
+                                                            ->formatStateUsing(fn ($state) => (int) ($state ?? $item['quantidade']))
                                                             ->dehydrated()
                                                             ->required()
                                                             ->reactive()
@@ -642,6 +644,11 @@ class OrdemPedidoResource extends Resource
                                     'valor_total_item' => $valorTotal,
                                     'observacao' => $cotacaoItem->observacao ?? '',
                                 ];
+                                $quantidadeKey = "quantidade_{$fornecedor->id}_{$cotacaoItem->id}";
+
+                                if (!$get($quantidadeKey)) {
+                                    $set($quantidadeKey, $cotacaoItem->quantidade);
+                                }
                                 $totalFornecedor += $valorTotal;
                             }
                         }
