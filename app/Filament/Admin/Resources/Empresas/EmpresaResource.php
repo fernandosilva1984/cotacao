@@ -283,8 +283,8 @@ class EmpresaResource extends Resource
                             ->title('Assinatura renovada!')
                             ->body("Nova validade: {$record->data_validade->format('d/m/Y')}")
                             ->send();
-                    }),
-                  //  ->visible(fn ($record) => auth()->user()->hasPermissionTo('Renovar Assinatura')),
+                    })
+                    ->visible(fn ($record) => auth()->user()->hasPermissionTo('Renovar Assinatura')),
                  ViewAction::make()
                     ->label('')
                     ->tooltip('Ver Detalhes')

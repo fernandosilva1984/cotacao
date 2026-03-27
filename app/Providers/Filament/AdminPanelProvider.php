@@ -21,12 +21,14 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Filament\Navigation\NavigationGroup;
 use Jacobtims\FilamentLogger\FilamentLoggerPlugin;
 use App\Http\Middleware\CheckUserAndCompanyStatus;
+use App\Filament\Pages\Auth\Login;
 
 
 class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
+        $isLogin = str_ends_with(request()->url(), '/login'); 
         return $panel
             ->navigationGroups([
                 NavigationGroup::make()
@@ -46,7 +48,20 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(Login::Class)
+            ->brandLogo(asset('images/logo.png')) // Logo na página de login e header
+            ->brandLogoHeight('3rem') // Altura da logo
+            ->favicon(asset('images/favicon.ico')) // Favicon do sistema
+            //->collapsed() // Menu começa colapsado
+            ->sidebarCollapsibleOnDesktop() // Habilita collapse no desktop
+            ->collapsedSidebarWidth('rem')  // Largura quando colapsado
+            //->sidebarWidth('16rem')          // Largura normal
+
+            ->when($isLogin, fn ($panel) => $panel
+                 ->brandLogoHeight('8rem') // Altura da logo
+                 ->brandLogo(asset('images/logo2.png')) // Logo na página de login e header
+            
+            )
             ->colors([
                 'primary' => Color::Gray,
            
