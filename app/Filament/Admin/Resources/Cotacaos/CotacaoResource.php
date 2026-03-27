@@ -424,7 +424,8 @@ class CotacaoResource extends Resource
                                 ->danger()
                                 ->send();
                         }
-                    }),
+                    })
+                    ->visible(fn (Cotacao $record) => $record->status === 'enviada'),
 
                 Action::make('visualizar_respostas')
                     ->label('')
