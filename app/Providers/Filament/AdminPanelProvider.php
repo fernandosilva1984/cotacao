@@ -28,7 +28,7 @@ class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
-        $isLogin = str_ends_with(request()->url(), '/login'); 
+        $isLogin = str_ends_with(request()->url(), '/login');
         return $panel
             ->navigationGroups([
                 NavigationGroup::make()
@@ -43,12 +43,12 @@ class AdminPanelProvider extends PanelProvider
                     ->label('Administração')
                     ->collapsed(),
                    // ->icon('heroicon-o-pencil'),
-                
+
             ])
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login(Login::Class)
+            ->login(Login::class)
             ->brandLogo(asset('images/logo.png')) // Logo na página de login e header
             ->brandLogoHeight('3rem') // Altura da logo
             ->favicon(asset('images/favicon.ico')) // Favicon do sistema
@@ -60,11 +60,11 @@ class AdminPanelProvider extends PanelProvider
             ->when($isLogin, fn ($panel) => $panel
                  ->brandLogoHeight('8rem') // Altura da logo
                  ->brandLogo(asset('images/logo2.png')) // Logo na página de login e header
-            
+
             )
             ->colors([
                 'primary' => Color::Gray,
-           
+
             ])
             ->sidebarCollapsibleOnDesktop()
             //->topNavigation()
@@ -92,10 +92,10 @@ class AdminPanelProvider extends PanelProvider
                 CheckUserAndCompanyStatus::class, // Adiciona o middleware personalizado
             ])
             ->resources([
-               
+
             ])
             ->plugins([
-              
+
             ])
             ->authMiddleware([
                 Authenticate::class,
