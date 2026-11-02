@@ -11,14 +11,15 @@ class Login extends BaseLogin
     // Personalizar o título da página
     public function getTitle(): string|Htmlable
     {
-        return 'Login - Sistema de Cotações';
+        return 'SGIPro - Cotações';
     }
 
     // Personalizar o cabeçalho
     public function getHeading(): string|Htmlable
     {
-        return 'Sistema de Cotações';
+        return 'Bem-vindo!';
     }
+
 
     // Personalizar o subcabeçalho
     public function getSubheading(): string|Htmlable

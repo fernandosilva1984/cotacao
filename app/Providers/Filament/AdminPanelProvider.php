@@ -50,16 +50,16 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login(Login::class)
             ->brandLogo(asset('images/logo.png')) // Logo na página de login e header
-            ->brandLogoHeight('3rem') // Altura da logo
+            ->brandLogoHeight('8rem') // Altura da logo
             ->favicon(asset('images/favicon.ico')) // Favicon do sistema
             //->collapsed() // Menu começa colapsado
             ->sidebarCollapsibleOnDesktop() // Habilita collapse no desktop
             ->collapsedSidebarWidth('rem')  // Largura quando colapsado
             //->sidebarWidth('16rem')          // Largura normal
 
-            ->when($isLogin, fn ($panel) => $panel
-                 ->brandLogoHeight('8rem') // Altura da logo
-                 ->brandLogo(asset('images/logo2.png')) // Logo na página de login e header
+            ->when(!$isLogin, fn ($panel) => $panel
+                 ->brandLogoHeight('3rem') // Altura da logo
+                 ->brandLogo(asset('images/logo_header.png')) // Logo na página de login e header
 
             )
             ->colors([
